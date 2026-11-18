@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Badges, Membership &amp; Fair Play — Throneyard</title>
+<meta name="theme-color" content="#0A0B0A">
+<link rel="icon" href="/assets/brand/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/assets/brand/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/assets/brand/apple-touch-icon.png">
+<meta property="og:image" content="https://throneyard.com/assets/brand/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/styles.css">
+<style>
+  .rules { max-width: 780px; display: flex; flex-direction: column; gap: 28px; padding-bottom: 88px; }
+  .rules h2 { font-size: 22px; letter-spacing: -0.01em; }
+  .rules p, .rules li { color: var(--muted); }
+  .rules ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; }
+  .rules section { display: flex; flex-direction: column; gap: 10px; }
+</style>
+</head>
+<body>
+<header id="site-header"></header>
+<main class="wrap">
+  <div class="page-head">
+    <span class="eyebrow">Badges, Membership &amp; Fair Play</span>
+    <h1 class="h2">How Throneyard honors the best players</h1>
+  </div>
+
+  <article class="rules">
+    <section>
+      <h2>Monthly honors</h2>
+      <ul>
+        <li><span class="badge honor-city">City Champion</span>: finish the month with the highest verified score in your city.</li>
+        <li><span class="badge honor-continent">Continental Champion</span>: finish the month with the highest verified score on your continent (North America, Europe, Asia, South America, Africa or Oceania).</li>
+        <li><span class="badge honor-world">World Champion</span>: after each month, every country's best player is invited to the World Final. If needed, the next-best players are added so there are at least <span class="final-min">4</span> finalists. The finalist with the highest verified World Final score is crowned World Champion.</li>
+      </ul>
+      <p>Badges stay on your profile for good and stack. Win more than once and your count goes up. Reigning champions are featured at the top of the homepage, the rankings and the Discord.</p>
+      <p><strong>Badges are honors only.</strong> There's no cash prize. Throne Pass members in any country can earn them. Rankings and badges are for members only. Free players can still submit runs, and their verified points are saved and count as soon as they join.</p>
+    </section>
+
+    <section>
+      <h2>Throne Pass</h2>
+      <p><span class="pass-price">$5.99</span> per month (plus any tax), billed through Stripe. It renews monthly until you cancel. Cancel anytime from "Manage or cancel membership" on the Submit page, and your perks last until the end of the period you've paid for. Fees aren't refundable except where the law requires it.</p>
+      <ul>
+        <li><strong>Get ranked</strong> on the global, country, city and continental boards, and compete for City, Continental and World Champion badges</li>
+        <li><span class="early-hours">24</span>-hour early access to every weekend mission</li>
+        <li>Members-only bonus missions, which count toward your ranking</li>
+        <li>Priority review: your runs are checked first</li>
+        <li>Gold name and Member badge on every leaderboard</li>
+        <li>Up to <span class="member-shots">12</span> screenshots per run (free players: <span class="free-shots">6</span>)</li>
+        <li>Start your own crew (anyone can join one for free)</li>
+        <li>3 active Find Players posts, pinned to the top (free players: 1)</li>
+        <li>Members-only Discord role and channel</li>
+      </ul>
+      <p>Membership doesn't change how runs are scored. Every run, member or not, is judged by the same rules.</p>
+    </section>
+
+    <section>
+      <h2>How months work</h2>
+      <p>Each month runs on Toronto time (Eastern). A weekend run counts toward the month its mission opened. Ties share the badge.</p>
+    </section>
+
+    <section>
+      <h2>Fair play</h2>
+      <ul>
+        <li>Submit an unedited recording of the full run. Screenshots are optional but recommended.</li>
+        <li>Every run is <strong>AI-checked and human-verified</strong>. An AI check looks at your screenshots and frames from your recording for signs of the wrong game, edited scores or AI-generated images, and spots files that were already submitted. It only flags runs; a person makes every final decision.</li>
+        <li>Footage that's AI-generated, edited, spliced, reused, played by someone else, or uses cheats, mods, exploits or glitches is rejected.</li>
+        <li>We may ask for raw footage or a replay before confirming a score.</li>
+        <li>One account per person. Badges earned by breaking these rules are removed.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Community conduct</h2>
+      <ul>
+        <li>Respect other players. No harassment, hate, threats or doxxing in posts, crew names, bios or Discord.</li>
+        <li>Find Players posts are for finding people to play with. No selling accounts, boosting or scams.</li>
+        <li>Chat: keep it friendly. Spamming is slowed down automatically, new accounts can post links after 24 hours, and anyone can report a message or block a player.</li>
+        <li>Direct messages are friends-only. Blocking someone stops their messages to you.</li>
+        <li>Callouts: trash talk about the game is part of it. Calling out a rival is fine; threats, slurs, harassment or going after someone's real life is not. Report a callout or block a player any time; blocked players can't call you out or reply to you.</li>
+        <li>We remove posts, crews, messages and accounts that break these rules, and can mute players from chat.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Not affiliated</h2>
+      <p>Throneyard is an independent community. It isn't sponsored or endorsed by Rockstar Games, Take-Two Interactive, Sony, Microsoft or Discord.</p>
+    </section>
+  </article>
+</main>
+<footer id="site-footer"></footer>
+<script type="module">
+import { renderChrome, getSettings, applyPrizeText } from '/assets/app.js';
+renderChrome('rules');
+getSettings().then(applyPrizeText);
+</script>
+</body>
+</html>

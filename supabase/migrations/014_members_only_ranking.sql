@@ -1,0 +1,5 @@
+-- Applied live as 018_members_only_ranking, 019_member_flag_for_ranks, 020_member_flag_on_insert (plus 017_stripe_events).
+-- Throne Pass required to be ranked: leaderboard_v3 / monthly_board_v3 / player_profile / city_wars filter to members;
+-- award_monthly_badges and lock_world_finalists count members only.
+-- player_stats.member is kept in sync by a trigger on memberships, set on insert, and swept every 15 minutes (ty-member-flags).
+-- Full function bodies are in the live database; see the migration history in Supabase.

@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Player — Throneyard</title>
+<meta name="theme-color" content="#0A0B0A">
+<link rel="icon" href="/assets/brand/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/assets/brand/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/assets/brand/apple-touch-icon.png">
+<meta property="og:image" content="https://throneyard.com/assets/brand/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/styles.css">
+</head>
+<body>
+<header id="site-header"></header>
+<main class="wrap stack" style="gap:28px;padding-top:56px;padding-bottom:88px">
+  <div id="not-found" class="card empty" hidden>We couldn't find that player. <a href="/leaderboard.html">Browse the rankings</a></div>
+
+  <section id="profile" class="stack" style="gap:28px" hidden>
+    <div class="profile-head">
+      <div class="profile-avatar" id="p-avatar" aria-hidden="true"></div>
+      <div class="stack" style="gap:8px;flex:1 1 320px;min-width:0">
+        <div class="row" style="gap:10px">
+          <h1 class="h2" id="p-name" style="font-size:clamp(32px,4.4vw,52px)"></h1>
+          <span id="p-chips" class="row" style="gap:6px"></span>
+        </div>
+        <p class="muted" id="p-meta"></p>
+        <p id="p-bio" style="color:var(--text-2)"></p>
+      </div>
+      <div class="row" style="gap:8px" id="p-actions">
+        <button class="btn btn-primary" type="button" id="friend-btn">Add friend</button>
+        <a class="btn btn-ghost" id="msg-btn" hidden>Message</a>
+        <a class="btn btn-ghost" id="ch-btn" hidden>Challenge</a>
+        <button class="btn btn-ghost" type="button" id="respect-btn">Give respect</button>
+        <a class="btn btn-ghost" id="callout-btn" hidden>Call out</a>
+        <button class="btn btn-ghost" type="button" id="rival-btn" hidden>Make my rival</button>
+        <a class="btn btn-ghost" href="/submit.html" id="edit-btn" hidden>Edit my profile</a>
+      </div>
+    </div>
+    <p class="error" id="p-err" role="alert" hidden></p>
+    <p class="ok" id="p-ok" role="status" hidden></p>
+
+    <div class="stat-row">
+      <div class="stat"><b id="s-rank">—</b><span>Global rank</span></div>
+      <div class="stat"><b id="s-score">0</b><span>Total verified points</span></div>
+      <div class="stat"><b id="s-runs">0</b><span>Verified runs</span></div>
+      <div class="stat"><b id="s-respect">0</b><span>Respect</span></div>
+      <div class="stat"><b id="s-streak">0</b><span>Weekend streak · best <span id="s-best">0</span></span></div>
+    </div>
+
+    <div class="card stack" id="rival-box" style="gap:12px" hidden>
+      <strong style="font-family:var(--display);font-size:19px">Rivalry</strong>
+      <div class="rival-card">
+        <div><a id="rv-me"></a><b id="rv-me-month">0</b><span class="dim" style="font-size:13px">this month · <span id="rv-me-total">0</span> all-time</span></div>
+        <span class="vs">VS</span>
+        <div><a id="rv-them"></a><b id="rv-them-month">0</b><span class="dim" style="font-size:13px">this month · <span id="rv-them-total">0</span> all-time</span></div>
+      </div>
+      <p class="muted" id="rv-line" style="text-align:center;margin:0"></p>
+    </div>
+
+    <div class="split">
+      <div class="card stack" style="gap:12px">
+        <strong style="font-family:var(--display);font-size:19px">Honors</strong>
+        <div id="p-honors" class="stack" style="gap:8px"><p class="dim">No badges yet.</p></div>
+      </div>
+      <div class="card stack" style="gap:12px">
+        <strong style="font-family:var(--display);font-size:19px">Crew &amp; contact</strong>
+        <div id="p-crew" class="muted">Not in a crew.</div>
+        <div id="p-discord" class="muted"></div>
+      </div>
+    </div>
+
+    <div class="stack" style="gap:12px">
+      <div class="row between"><strong style="font-family:var(--display);font-size:19px">Latest callouts</strong><a href="/callouts.html" class="dim">All callouts →</a></div>
+      <div id="p-posts" class="stack" style="gap:10px"><p class="dim">Loading…</p></div>
+    </div>
+
+    <div class="stack" style="gap:12px">
+      <strong style="font-family:var(--display);font-size:19px">Recent verified runs</strong>
+      <div class="table-box">
+        <table>
+          <thead><tr><th scope="col">Mission</th><th scope="col">Weekend</th><th scope="col">Verified</th><th scope="col">Score</th></tr></thead>
+          <tbody id="p-runs"><tr><td colspan="4" class="empty">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</main>
+<footer id="site-footer"></footer>
+
+<script type="module">
+import { sb, $, esc, fmt, renderChrome, currentProfile, memberChip, badgeChips, playerHref } from '/assets/app.js';
+import { postHTML, wirePosts } from '/assets/posts.js';
+renderChrome('player');
+
+const tag = new URLSearchParams(location.search).get('u') || '';
+const show = (el, text, ok) => { const t = ok ? $('#p-ok') : $('#p-err'); (ok ? $('#p-err') : $('#p-ok')).hidden = true; t.textContent = text; t.hidden = false; };
+
+const { data } = await sb.rpc('player_profile', { p_gamertag: tag });
+const p = data && data[0];
+if (!p) {
+  $('#not-found').hidden = false;
+} else {
+  document.title = `${p.gamertag} — Throneyard`;
+  $('#profile').hidden = false;
+  $('#p-avatar').textContent = (p.gamertag || '?').charAt(0).toUpperCase();
+  $('#p-name').textContent = p.gamertag;
+  if (p.member) $('#p-name').classList.add('name-member');
+  $('#p-meta').textContent = `${p.city}, ${p.country} · ${p.platform === 'xbox' ? 'Xbox' : 'PS5'} · Joined ${new Date(p.joined + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`;
+  $('#p-bio').textContent = p.bio || '';
+  if (p.global_rank) $('#s-rank').textContent = '#' + fmt(p.global_rank);
+  else if (!p.member) $('#s-rank').innerHTML = '<a href="/submit.html#membership" style="font-size:15px">Not ranked · Get Pass</a>';
+  else $('#s-rank').textContent = '—';
+  $('#s-score').textContent = fmt(p.total_score);
+  $('#s-runs').textContent = fmt(p.verified_runs);
+  $('#s-respect').textContent = fmt(p.respects);
+  if (p.crew_name) $('#p-crew').innerHTML = `<span class="crew-tag">[${esc(p.crew_tag)}]</span> <strong>${esc(p.crew_name)}</strong> · <a href="/community.html#crews">View crews</a>`;
+  $('#p-discord').innerHTML = p.discord_handle ? `Discord: <strong style="color:var(--text)">${esc(p.discord_handle)}</strong>` : '';
+
+  const { data: hof } = await sb.from('badges').select('kind, label, month').eq('user_id', p.id).order('month', { ascending: false }).limit(200);
+  const mine = { world: 0, continent: 0, city: 0 };
+  (hof || []).forEach((b) => (mine[b.kind] = (mine[b.kind] || 0) + 1));
+  $('#p-chips').innerHTML = memberChip(p.member) + badgeChips(mine);
+  const names = { world: 'World Champion', continent: 'Continental Champion', city: 'City Champion' };
+  if (hof && hof.length) {
+    $('#p-honors').innerHTML = hof.map((b) => `<div class="file-row"><span class="badge honor-${esc(b.kind)}">${names[b.kind]}</span><span class="dim">${esc(b.label)} · ${new Date(b.month + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span></div>`).join('');
+  }
+
+  const { data: st } = await sb.rpc('player_streak', { p_gamertag: p.gamertag });
+  if (st && st[0]) { $('#s-streak').textContent = fmt(st[0].current_streak); $('#s-best').textContent = fmt(st[0].best_streak); }
+  const { data: runs } = await sb.rpc('player_runs', { p_gamertag: p.gamertag, p_limit: 10 });
+  $('#p-runs').innerHTML = runs && runs.length ? runs.map((r) => `<tr>
+    <td><strong>${esc(r.mission)}</strong></td><td class="muted">${esc(r.week_label)}</td>
+    <td class="muted">${new Date(r.reviewed_at).toLocaleDateString()}</td><td><span class="score">${fmt(r.score)}</span></td></tr>`).join('')
+    : '<tr><td colspan="4" class="empty">No verified runs yet.</td></tr>';
+
+  // Rivalry (this player vs their chosen rival)
+  const { data: rc } = await sb.rpc('rival_card', { p_tag: p.gamertag });
+  const rv = rc && rc[0];
+  if (rv) {
+    $('#rival-box').hidden = false;
+    const name = (el, tag) => { el.textContent = tag; el.href = playerHref(tag); el.style.fontWeight = '700'; };
+    name($('#rv-me'), rv.player); name($('#rv-them'), rv.rival);
+    $('#rv-me-month').textContent = fmt(rv.player_month); $('#rv-them-month').textContent = fmt(rv.rival_month);
+    $('#rv-me-total').textContent = fmt(rv.player_total); $('#rv-them-total').textContent = fmt(rv.rival_total);
+    const gap = Number(rv.player_month) - Number(rv.rival_month);
+    $('#rv-line').textContent = gap > 0 ? `${rv.player} leads by ${fmt(gap)} this month.` : gap < 0 ? `${rv.rival} leads by ${fmt(-gap)} this month.` : 'Dead even this month.';
+  }
+
+  // Latest callouts by this player
+  const postsBox = $('#p-posts');
+  wirePosts(postsBox);
+  const { data: posts } = await sb.rpc('feed', { p_scope: 'player', p_before: null, p_limit: 5, p_tag: p.gamertag });
+  postsBox.innerHTML = posts && posts.length ? posts.map((x) => postHTML(x)).join('') : '<p class="dim">No callouts yet.</p>';
+
+  // Actions
+  const { session, profile: myProfile } = await currentProfile();
+  const me = session?.user?.id;
+  if (me && me !== p.id && myProfile) {
+    $('#callout-btn').hidden = false;
+    $('#callout-btn').href = '/callouts.html?callout=' + encodeURIComponent(p.gamertag);
+    const rb = $('#rival-btn');
+    rb.hidden = false;
+    const isRival = myProfile.rival_id === p.id;
+    rb.textContent = isRival ? 'Your rival ✓' : 'Make my rival';
+    rb.addEventListener('click', async () => {
+      rb.disabled = true;
+      const nowRival = rb.textContent.startsWith('Your rival');
+      const { error } = await sb.rpc('set_rival', { p_tag: nowRival ? null : p.gamertag });
+      rb.disabled = false;
+      if (error) { show(null, error.message); return; }
+      rb.textContent = nowRival ? 'Make my rival' : 'Your rival ✓';
+      show(null, nowRival ? 'Rival removed.' : `${p.gamertag} is now your rival. They've been notified.`, true);
+    });
+  }
+  if (me === p.id) {
+    $('#friend-btn').hidden = true; $('#respect-btn').hidden = true; $('#edit-btn').hidden = false;
+  } else {
+    const needSignIn = () => { show(null, 'Sign in to add friends and give respect.'); setTimeout(() => (location.href = '/submit.html'), 1200); };
+
+    // Friendship state
+    async function friendState() {
+      if (!me) return null;
+      const { data: f } = await sb.from('friendships').select('requester, addressee, status')
+        .or(`and(requester.eq.${me},addressee.eq.${p.id}),and(requester.eq.${p.id},addressee.eq.${me})`);
+      return f && f[0];
+    }
+    async function paintFriend() {
+      const f = await friendState();
+      const b = $('#friend-btn');
+      b.disabled = false;
+      if (!f) { b.textContent = 'Add friend'; b.dataset.act = 'add'; }
+      else if (f.status === 'accepted') { b.textContent = 'Friends ✓'; b.dataset.act = 'remove'; b.className = 'btn btn-ghost'; }
+      else if (f.requester === me) { b.textContent = 'Request sent'; b.dataset.act = 'cancel'; b.className = 'btn btn-ghost'; }
+      else { b.textContent = 'Accept friend request'; b.dataset.act = 'accept'; b.className = 'btn btn-primary'; }
+      $('#msg-btn').hidden = !(f && f.status === 'accepted');
+      $('#msg-btn').href = '/chat.html#dm=' + encodeURIComponent(p.gamertag);
+      $('#ch-btn').hidden = !(f && f.status === 'accepted');
+      $('#ch-btn').href = '/community.html?vs=' + encodeURIComponent(p.gamertag) + '#challenges';
+    }
+    $('#friend-btn').addEventListener('click', async () => {
+      if (!me) return needSignIn();
+      const act = $('#friend-btn').dataset.act;
+      $('#friend-btn').disabled = true;
+      let error;
+      if (act === 'add') ({ error } = await sb.from('friendships').insert({ requester: me, addressee: p.id }));
+      if (act === 'accept') ({ error } = await sb.from('friendships').update({ status: 'accepted' }).eq('requester', p.id).eq('addressee', me));
+      if (act === 'cancel' || act === 'remove') {
+        if (act === 'remove' && $('#friend-btn').dataset.armed !== '1') { $('#friend-btn').dataset.armed = '1'; $('#friend-btn').textContent = 'Click again to unfriend'; $('#friend-btn').disabled = false; return; }
+        ({ error } = await sb.from('friendships').delete().or(`and(requester.eq.${me},addressee.eq.${p.id}),and(requester.eq.${p.id},addressee.eq.${me})`));
+      }
+      $('#friend-btn').dataset.armed = '';
+      if (error) show(null, error.message);
+      else show(null, act === 'add' ? 'Friend request sent.' : act === 'accept' ? `You and ${p.gamertag} are now friends.` : 'Updated.', true);
+      paintFriend();
+    });
+
+    // Respect
+    let respected = false;
+    if (me) {
+      const { data: r } = await sb.from('respects').select('giver').eq('giver', me).eq('receiver', p.id);
+      respected = !!(r && r.length);
+    }
+    const paintRespect = () => { $('#respect-btn').textContent = respected ? 'Respect given ✓' : 'Give respect'; };
+    paintRespect();
+    $('#respect-btn').addEventListener('click', async () => {
+      if (!me) return needSignIn();
+      $('#respect-btn').disabled = true;
+      const { error } = respected
+        ? await sb.from('respects').delete().eq('giver', me).eq('receiver', p.id)
+        : await sb.from('respects').insert({ giver: me, receiver: p.id });
+      $('#respect-btn').disabled = false;
+      if (error) return show(null, error.message);
+      respected = !respected;
+      $('#s-respect').textContent = fmt(Number($('#s-respect').textContent.replace(/,/g, '')) + (respected ? 1 : -1));
+      paintRespect();
+    });
+    paintFriend();
+  }
+}
+</script>
+</body>
+</html>

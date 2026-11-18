@@ -1,0 +1,442 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Admin — Throneyard</title>
+<meta name="theme-color" content="#0A0B0A">
+<link rel="icon" href="/assets/brand/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/assets/brand/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/assets/brand/apple-touch-icon.png">
+<meta property="og:image" content="https://throneyard.com/assets/brand/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/styles.css">
+</head>
+<body>
+<header id="site-header"></header>
+<main class="wrap" style="padding-bottom:88px">
+  <div class="page-head">
+    <span class="eyebrow">Admin</span>
+    <h1 class="h2">Review & missions</h1>
+  </div>
+
+  <div id="denied" class="card" hidden>
+    <p class="muted">You need to be signed in with an admin account. <a href="/submit.html">Sign in</a></p>
+  </div>
+
+  <div id="panel" class="stack" style="gap:24px" hidden>
+    <div class="tabs" role="group" aria-label="Admin section" style="align-self:flex-start">
+      <button class="tab" type="button" data-view="queue" aria-pressed="true">Review queue <span id="pending-count"></span></button>
+      <button class="tab" type="button" data-view="missions" aria-pressed="false">Missions</button>
+      <button class="tab" type="button" data-view="prize" aria-pressed="false">Badges &amp; World Final</button>
+      <button class="tab" type="button" data-view="mod" aria-pressed="false">Moderation</button>
+    </div>
+
+    <!-- Moderation -->
+    <section id="view-mod" class="split" hidden>
+      <div class="card stack" style="gap:10px;flex-basis:100%">
+        <strong style="font-family:var(--display);font-size:19px">Chat reports</strong>
+        <div id="mod-chat" class="stack" style="gap:8px"><p class="dim">Loading…</p></div>
+      </div>
+      <div class="card stack" style="gap:10px;flex-basis:100%">
+        <strong style="font-family:var(--display);font-size:19px">Callout reports</strong>
+        <div id="mod-posts" class="stack" style="gap:8px"><p class="dim">Loading…</p></div>
+      </div>
+      <div class="card stack" style="gap:10px">
+        <strong style="font-family:var(--display);font-size:19px">Find Players posts</strong>
+        <div id="mod-lfg" class="stack" style="gap:8px"><p class="dim">Loading…</p></div>
+      </div>
+      <div class="card stack" style="gap:10px">
+        <strong style="font-family:var(--display);font-size:19px">Crews</strong>
+        <div id="mod-crews" class="stack" style="gap:8px"><p class="dim">Loading…</p></div>
+      </div>
+    </section>
+
+    <!-- Badges -->
+    <section id="view-prize" class="stack" style="gap:20px" hidden>
+      <div class="row">
+        <label for="prize-month" class="label">Month</label>
+        <select class="input" id="prize-month" style="max-width:240px"></select>
+      </div>
+
+      <div class="card stack" style="gap:10px">
+        <div class="row between">
+          <strong style="font-family:var(--display);font-size:19px">1 · World Final finalists</strong>
+          <button class="btn btn-ghost" type="button" id="lock-finalists">Lock finalists</button>
+        </div>
+        <p class="dim">After the month ends and its runs are reviewed: lock each country's #1 (ties all qualify), filled to at least <span class="final-min">4</span>. Then create a World Final mission for this month in Missions. Locking again replaces the list.</p>
+        <p class="ok" id="lock-msg" role="status" hidden></p>
+        <div class="table-box">
+          <table>
+            <thead><tr><th scope="col">Rank</th><th scope="col">Finalist</th><th scope="col">Location</th><th scope="col">Qualified as</th><th scope="col">Final score</th></tr></thead>
+            <tbody id="final-body"><tr><td colspan="5" class="empty">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card stack" style="gap:10px">
+        <div class="row between">
+          <strong style="font-family:var(--display);font-size:19px">2 · Award badges</strong>
+          <button class="btn btn-primary" type="button" id="award-badges">Award badges for this month</button>
+        </div>
+        <p class="dim">Crowns every City Champion and Continental Champion for the month, plus the World Champion if the World Final has a verified result. Run it again after the World Final to add the World Champion; it replaces that month's badges.</p>
+        <p class="ok" id="award-msg" role="status" hidden></p>
+        <div id="month-champs"></div>
+      </div>
+    </section>
+
+    <!-- Queue -->
+    <section id="view-queue" class="stack" style="gap:16px">
+      <div class="row">
+        <label for="status-filter" class="label">Show</label>
+        <select class="input" id="status-filter" style="max-width:220px">
+          <option value="pending">In review</option>
+          <option value="verified">Verified</option>
+          <option value="rejected">Rejected</option>
+        </select>
+      </div>
+      <div id="queue" class="stack" style="gap:16px"><p class="dim">Loading…</p></div>
+    </section>
+
+    <!-- Missions -->
+    <section id="view-missions" class="split" hidden>
+      <form id="mission-form" class="card stack" style="gap:14px">
+        <strong style="font-family:var(--display);font-size:19px">New mission</strong>
+        <div class="row" style="align-items:flex-start">
+          <div class="field" style="flex:1 1 180px"><label for="m-kind">Type</label>
+            <select class="input" id="m-kind"><option value="weekend">Weekend mission</option><option value="world_final">World Final</option></select></div>
+          <div class="field" style="flex:1 1 180px" id="m-final-field" hidden><label for="m-final">Final for month</label><input class="input" id="m-final" type="month"></div>
+        </div>
+        <div class="field"><label for="m-title">Title</label><input class="input" id="m-title" maxlength="120" required></div>
+        <label class="row" style="gap:10px;font-size:14px;color:var(--text-2)"><input type="checkbox" id="m-members" style="width:20px;height:20px;accent-color:#C8FF3D"> Members-only bonus mission</label>
+        <div class="field"><label for="m-desc">Rules / description</label><textarea class="input" id="m-desc"></textarea></div>
+        <div class="row" style="align-items:flex-start">
+          <div class="field" style="flex:1 1 160px"><label for="m-week">Weekend label</label><input class="input" id="m-week" maxlength="40" placeholder="Weekend 1" required></div>
+          <div class="field" style="flex:1 1 120px"><label for="m-points">Max points</label><input class="input" id="m-points" type="number" min="1" value="1000" required></div>
+        </div>
+        <div class="row" style="align-items:flex-start">
+          <div class="field" style="flex:1 1 200px"><label for="m-open">Opens</label><input class="input" id="m-open" type="datetime-local" required></div>
+          <div class="field" style="flex:1 1 200px"><label for="m-close">Closes</label><input class="input" id="m-close" type="datetime-local" required></div>
+        </div>
+        <p class="error" id="m-err" role="alert" hidden></p>
+        <button class="btn btn-primary" type="submit">Create mission</button>
+      </form>
+      <div class="card stack" style="gap:10px">
+        <strong style="font-family:var(--display);font-size:19px">All missions</strong>
+        <div id="mission-list" class="stack" style="gap:8px"></div>
+      </div>
+    </section>
+  </div>
+</main>
+<footer id="site-footer"></footer>
+
+<script type="module">
+import { sb, $, $$, esc, fmt, renderChrome, getSettings, applyPrizeText } from '/assets/app.js';
+renderChrome('admin');
+
+const { data: isAdmin } = await sb.rpc('is_admin');
+if (!isAdmin) { $('#denied').hidden = false; }
+else { $('#panel').hidden = false; init(); }
+
+function init() {
+  $$('[data-view]').forEach((b) => b.addEventListener('click', () => {
+    $$('[data-view]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    $('#view-queue').hidden = b.dataset.view !== 'queue';
+    $('#view-missions').hidden = b.dataset.view !== 'missions';
+    $('#view-prize').hidden = b.dataset.view !== 'prize';
+    $('#view-mod').hidden = b.dataset.view !== 'mod';
+    if (b.dataset.view === 'mod') loadMod();
+  }));
+  const now = new Date();
+  for (let i = 0; i < 12; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const o = document.createElement('option');
+    o.value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
+    o.textContent = d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    $('#prize-month').appendChild(o);
+  }
+  $('#prize-month').addEventListener('change', loadPrize);
+  $('#m-kind').addEventListener('change', () => { $('#m-final-field').hidden = $('#m-kind').value !== 'world_final'; });
+  $('#lock-finalists').addEventListener('click', lockFinalists);
+  $('#award-badges').addEventListener('click', awardBadges);
+  getSettings().then(applyPrizeText);
+  loadPrize();
+  $('#status-filter').addEventListener('change', loadQueue);
+  $('#mission-form').addEventListener('submit', createMission);
+  loadQueue();
+  loadMissions();
+}
+
+async function loadPrize() {
+  const month = $('#prize-month').value;
+  const fb = $('#final-body');
+  fb.innerHTML = '<tr><td colspan="5" class="empty">Loading…</td></tr>';
+  const { data: fin, error: ferr } = await sb.rpc('world_final_board', { p_month: month });
+  if (ferr) fb.innerHTML = '<tr><td colspan="5" class="empty">Couldn\'t load finalists.</td></tr>';
+  else fb.innerHTML = fin.length ? fin.map((r) => `<tr>
+    <td><span class="rank ${Number(r.final_rank) === 1 ? 'r1' : ''}">${r.final_rank ? String(r.final_rank).padStart(2, '0') : '—'}</span></td>
+    <td><strong>${esc(r.gamertag)}</strong></td>
+    <td class="muted">${esc(r.city)}, ${esc(r.country)}</td>
+    <td class="muted">${esc(r.reason)}</td>
+    <td><span class="score">${r.final_rank ? fmt(r.final_score) : 'Pending'}</span></td>
+  </tr>`).join('') : '<tr><td colspan="5" class="empty">Finalists not locked for this month.</td></tr>';
+
+  const { data: b } = await sb.from('badges').select('kind, label, profiles(gamertag)').eq('month', month).order('kind', { ascending: false });
+  const box = $('#month-champs');
+  const names = { world: 'World Champion', continent: 'Continental Champion', city: 'City Champion' };
+  box.innerHTML = b && b.length
+    ? `<div class="stack" style="gap:8px">${b.map((x) => `<div class="file-row"><span><strong>${esc(x.profiles?.gamertag)}</strong> <span class="dim">· ${esc(x.label)}</span></span><span class="badge honor-${esc(x.kind)}">${names[x.kind]}</span></div>`).join('')}</div>`
+    : '<p class="dim">No badges awarded for this month yet.</p>';
+}
+
+async function awardBadges() {
+  const btn = $('#award-badges'); const msg = $('#award-msg');
+  if (btn.dataset.armed !== '1') { btn.dataset.armed = '1'; btn.textContent = 'Confirm: award badges'; return; }
+  btn.dataset.armed = ''; btn.disabled = true; btn.textContent = 'Awarding…';
+  const { data, error } = await sb.rpc('award_monthly_badges', { p_month: $('#prize-month').value });
+  btn.disabled = false; btn.textContent = 'Award badges for this month';
+  msg.className = error ? 'error' : 'ok';
+  msg.textContent = error ? error.message : (data || []).map((r) => `${r.awarded} ${r.kind}`).join(' · ') + ' badges awarded.';
+  msg.hidden = false;
+  loadPrize();
+}
+
+function armed(btn, label) {
+  if (btn.dataset.armed === '1') return true;
+  btn.dataset.armed = '1'; btn.textContent = label; return false;
+}
+
+async function loadChatReports() {
+  const box = $('#mod-chat');
+  const { data, error } = await sb.rpc('admin_chat_reports');
+  if (error) { box.innerHTML = '<p class="error">Couldn\'t load chat reports.</p>'; return; }
+  if (!data.length) { box.innerHTML = '<p class="dim">No open reports.</p>'; return; }
+  box.innerHTML = data.map((r) => `<div class="file-row" style="flex-wrap:wrap;gap:8px">
+    <span style="flex-basis:100%"><strong>${esc(r.offender || 'Deleted')}</strong> <span class="dim">· ${r.kind === 'room' ? esc(r.room || '') : 'DM'} · reported by ${esc(r.reporter)} · ${new Date(r.reported_at).toLocaleString()}</span>
+      ${r.mute_until ? `<span class="badge warn">Muted until ${new Date(r.mute_until).toLocaleString()}</span>` : ''}</span>
+    <span class="muted" style="flex-basis:100%;white-space:pre-wrap">${esc(r.body || '(message deleted)')}</span>
+    <span class="row" style="gap:6px">
+      ${r.kind === 'room' && r.body ? `<button class="btn btn-ghost" type="button" data-cdel="${r.item_id}" style="min-height:34px;padding:0 10px">Delete message</button>` : ''}
+      ${r.offender_id ? `<button class="btn btn-ghost" type="button" data-mute="${r.offender_id}" data-h="24" style="min-height:34px;padding:0 10px">Mute 24h</button>
+      <button class="btn btn-ghost" type="button" data-mute="${r.offender_id}" data-h="168" style="min-height:34px;padding:0 10px">Mute 7 days</button>` : ''}
+      ${r.mute_until ? `<button class="btn btn-ghost" type="button" data-unmute="${r.offender_id}" style="min-height:34px;padding:0 10px">Unmute</button>` : ''}
+      <button class="btn btn-ghost" type="button" data-dismiss="${r.report_id}" style="min-height:34px;padding:0 10px">Dismiss</button>
+    </span></div>`).join('');
+  $$('[data-cdel]', box).forEach((b) => b.addEventListener('click', async () => { await sb.from('chat_messages').delete().eq('id', Number(b.dataset.cdel)); loadChatReports(); }));
+  $$('[data-mute]', box).forEach((b) => b.addEventListener('click', async () => {
+    const until = new Date(Date.now() + Number(b.dataset.h) * 3600e3).toISOString();
+    await sb.from('chat_mutes').upsert({ user_id: b.dataset.mute, until, reason: 'Muted from reports' });
+    loadChatReports();
+  }));
+  $$('[data-unmute]', box).forEach((b) => b.addEventListener('click', async () => { await sb.from('chat_mutes').delete().eq('user_id', b.dataset.unmute); loadChatReports(); }));
+  $$('[data-dismiss]', box).forEach((b) => b.addEventListener('click', async () => { await sb.from('chat_reports').delete().eq('id', Number(b.dataset.dismiss)); loadChatReports(); }));
+}
+
+async function loadPostReports() {
+  const box = $('#mod-posts');
+  const { data, error } = await sb.rpc('admin_post_reports');
+  if (error) { box.innerHTML = '<p class="error">Couldn\'t load callout reports.</p>'; return; }
+  if (!data.length) { box.innerHTML = '<p class="dim">No open reports.</p>'; return; }
+  box.innerHTML = data.map((r) => `<div class="file-row" style="flex-wrap:wrap;gap:8px">
+    <span style="flex-basis:100%"><strong>${esc(r.author)}</strong> <span class="dim">· reported by ${esc(r.reporter)} · ${new Date(r.created_at).toLocaleString()}</span></span>
+    <span class="muted" style="flex-basis:100%;white-space:pre-wrap">${esc(r.body)}</span>
+    <span class="row" style="gap:6px">
+      <a class="btn btn-ghost" href="/callouts.html#post-${r.post_id}" target="_blank" rel="noopener" style="min-height:34px;padding:0 10px">Open</a>
+      <button class="btn btn-ghost" type="button" data-pdel="${r.post_id}" style="min-height:34px;padding:0 10px">Delete callout</button>
+      <button class="btn btn-ghost" type="button" data-pdismiss="${r.report_id}" style="min-height:34px;padding:0 10px">Dismiss</button>
+    </span></div>`).join('');
+  $$('[data-pdel]', box).forEach((b) => b.addEventListener('click', async () => { await sb.from('posts').delete().eq('id', Number(b.dataset.pdel)); loadPostReports(); }));
+  $$('[data-pdismiss]', box).forEach((b) => b.addEventListener('click', async () => { await sb.from('post_reports').update({ resolved: true }).eq('id', Number(b.dataset.pdismiss)); loadPostReports(); }));
+}
+
+async function loadMod() {
+  loadChatReports();
+  loadPostReports();
+  const { data: posts } = await sb.rpc('lfg_feed', { p_platform: null, p_limit: 100 });
+  const lb = $('#mod-lfg');
+  lb.innerHTML = posts && posts.length ? posts.map((p) => `<div class="file-row" style="flex-wrap:wrap">
+      <span><strong>${esc(p.title)}</strong> <span class="dim">· ${esc(p.gamertag)}</span></span>
+      <button class="btn btn-ghost" type="button" data-del-post="${p.id}" style="min-height:36px;padding:0 12px">Remove</button>
+      ${p.body ? `<span class="dim" style="flex-basis:100%">${esc(p.body)}</span>` : ''}</div>`).join('')
+    : '<p class="dim">No active posts.</p>';
+  $$('[data-del-post]', lb).forEach((b) => b.addEventListener('click', async () => {
+    if (!armed(b, 'Confirm remove')) return;
+    await sb.from('lfg_posts').delete().eq('id', Number(b.dataset.delPost));
+    loadMod();
+  }));
+
+  const { data: crews } = await sb.rpc('crew_board', { p_limit: 200 });
+  const cb = $('#mod-crews');
+  cb.innerHTML = crews && crews.length ? crews.map((c) => `<div class="file-row" style="flex-wrap:wrap">
+      <span><span class="crew-tag">[${esc(c.tag)}]</span> <strong>${esc(c.name)}</strong> <span class="dim">· owner ${esc(c.owner_gamertag)} · ${fmt(c.members)} members</span></span>
+      <button class="btn btn-ghost" type="button" data-del-crew="${c.id}" style="min-height:36px;padding:0 12px">Disband</button>
+      ${c.description ? `<span class="dim" style="flex-basis:100%">${esc(c.description)}</span>` : ''}</div>`).join('')
+    : '<p class="dim">No crews yet.</p>';
+  $$('[data-del-crew]', cb).forEach((b) => b.addEventListener('click', async () => {
+    if (!armed(b, 'Confirm disband')) return;
+    await sb.from('crews').delete().eq('id', Number(b.dataset.delCrew));
+    loadMod();
+  }));
+}
+
+async function lockFinalists() {
+  const btn = $('#lock-finalists'); const msg = $('#lock-msg');
+  if (btn.dataset.armed !== '1') { btn.dataset.armed = '1'; btn.textContent = 'Confirm: lock finalists'; return; }
+  btn.dataset.armed = ''; btn.disabled = true; btn.textContent = 'Locking…';
+  const { data, error } = await sb.rpc('lock_world_finalists', { p_month: $('#prize-month').value });
+  btn.disabled = false; btn.textContent = 'Lock finalists';
+  msg.className = error ? 'error' : 'ok';
+  msg.textContent = error ? error.message : `${data} finalist${data === 1 ? '' : 's'} locked.`;
+  msg.hidden = false;
+  loadPrize();
+}
+
+async function signed(path) {
+  const { data } = await sb.storage.from('submissions').createSignedUrl(path, 3600);
+  return data?.signedUrl || '';
+}
+
+// AI evidence check: a second pair of eyes. It flags; you decide.
+const AI_LABEL = { clear: 'AI: looks clean', review: 'AI: look closely', flagged: 'AI: flagged', pending: 'AI: checking…', error: 'AI: could not check', skipped: 'AI: off' };
+function aiPanel(s) {
+  const a = s.ai_verdict || {};
+  const signs = [...(a.ai_generated_signs || []).map((x) => 'Possible AI image: ' + x), ...(a.editing_signs || []).map((x) => 'Possible edit: ' + x)];
+  if (a.looks_like_gta6 === 'no') signs.unshift('Does not look like GTA 6');
+  if (a.matches_mission === 'no') signs.unshift('Does not match the mission');
+  if (a.frames_consistent === 'no') signs.unshift('Video frames don\'t match the screenshots');
+  if (a.duplicate_of) signs.unshift(`Same file as submission #${a.duplicate_of}${a.duplicate_same_player ? ' (same player)' : ' (another player!)'}`);
+  return `<div class="ai-box stack" style="gap:6px;border:1px solid var(--border);border-radius:10px;padding:10px 12px">
+    <div class="row between" style="gap:8px;flex-wrap:wrap">
+      <span class="ai-chip ${esc(s.ai_status)}">${AI_LABEL[s.ai_status] || 'AI'}${a.confidence != null ? ` · ${Math.round(a.confidence * 100)}% sure` : ''}</span>
+      <span class="dim" style="font-size:13px">${a.score_read != null ? `Score seen in images: <strong>${fmt(a.score_read)}</strong> · ` : ''}${a.images_checked != null ? `${a.images_checked} images checked` : ''}</span>
+      <button class="btn btn-ghost" type="button" data-ai-rerun style="min-height:34px;padding:0 10px;font-size:13px">Re-check</button>
+    </div>
+    ${a.summary ? `<span class="muted" style="font-size:14px">${esc(a.summary)}</span>` : ''}
+    ${signs.length ? `<ul style="margin:0;padding-left:18px;font-size:14px;color:var(--warn)">${signs.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
+  </div>`;
+}
+
+async function loadQueue() {
+  const status = $('#status-filter').value;
+  const box = $('#queue');
+  box.innerHTML = '<p class="dim">Loading…</p>';
+  const { count } = await sb.from('submissions').select('id', { count: 'exact', head: true }).eq('status', 'pending');
+  $('#pending-count').textContent = count ? `(${count})` : '';
+
+  const { data, error } = await sb.from('submissions')
+    .select('*, profiles(gamertag, platform, country, city), missions(title, week_label, max_points)')
+    .eq('status', status).order('by_member', { ascending: false }).order('created_at', { ascending: status === 'pending' }).limit(25);
+  if (error) { box.innerHTML = '<p class="error">Couldn\'t load submissions.</p>'; return; }
+  if (!data.length) { box.innerHTML = '<div class="card empty">Nothing here.</div>'; return; }
+
+  box.innerHTML = '';
+  for (const s of data) {
+    const video = await signed(s.video_path);
+    const imgs = await Promise.all(s.image_paths.map(signed));
+    const v = s.file_checks?.video || {};
+    const card = document.createElement('article');
+    card.className = 'card review';
+    card.innerHTML = `
+      <div class="row between">
+        <div class="stack" style="gap:2px">
+          <strong style="font-size:18px">${esc(s.profiles?.gamertag)} <span class="dim">· ${esc(s.profiles?.city)}, ${esc(s.profiles?.country)} · ${s.profiles?.platform === 'xbox' ? 'Xbox' : 'PS5'}</span></strong>
+          <span class="dim">${s.by_member ? '<span class="badge member">Priority · Member</span> ' : ''}${esc(s.missions?.week_label)} · ${esc(s.missions?.title)} · submitted ${new Date(s.created_at).toLocaleString()}</span>
+        </div>
+        ${s.status === 'verified' ? `<span class="badge">Verified · ${fmt(s.score)} pts</span>` : s.status === 'rejected' ? '<span class="badge warn">Rejected</span>' : '<span class="badge gray">In review</span>'}
+      </div>
+      ${aiPanel(s)}
+      ${video ? `<video controls preload="metadata" src="${esc(video)}"></video>` : '<p class="error">Recording unavailable.</p>'}
+      ${imgs.length ? `<div class="thumbs">${imgs.map((u) => `<a href="${esc(u)}" target="_blank" rel="noopener"><img src="${esc(u)}" alt="Screenshot"></a>`).join('')}</div>` : '<p class="dim">No screenshots.</p>'}
+      <div class="kv">
+        <div><b>File</b>${esc(v.name || '—')}</div>
+        <div><b>Type / size</b>${esc(v.type || '—')} · ${v.size ? (v.size / 1048576).toFixed(1) + ' MB' : '—'}</div>
+        <div><b>Duration</b>${v.duration_s != null ? Math.floor(v.duration_s / 60) + 'm ' + (v.duration_s % 60) + 's' : '—'}</div>
+        <div><b>Resolution</b>${v.width ? v.width + '×' + v.height : '—'}</div>
+        <div><b>File date</b>${v.last_modified ? new Date(v.last_modified).toLocaleString() : '—'}</div>
+        <div><b>Player attested human</b>${s.file_checks?.attested_human ? 'Yes' : 'No'}</div>
+      </div>
+      ${s.notes ? `<p class="muted" style="font-size:15px"><strong>Notes:</strong> ${esc(s.notes)}</p>` : ''}
+      <div class="row" style="align-items:flex-end">
+        <div class="field" style="flex:0 1 160px"><label>Score (max ${fmt(s.missions?.max_points)})</label><input class="input" type="number" min="0" max="${s.missions?.max_points}" value="${s.score || ''}" data-score></div>
+        <button class="btn btn-primary" type="button" data-approve>Verify & score</button>
+        <div class="field" style="flex:1 1 220px"><label>Reject reason</label><input class="input" maxlength="300" placeholder="e.g. Footage appears edited" value="${esc(s.reject_reason || '')}" data-reason></div>
+        <button class="btn btn-ghost" type="button" data-reject>Reject</button>
+        ${s.status === 'verified' ? `<button class="btn ${s.featured ? 'btn-primary' : 'btn-ghost'}" type="button" data-feature>${s.featured ? '★ In Highlights' : 'Feature in Highlights'}</button>` : ''}
+      </div>
+      <p class="error" data-err hidden></p>`;
+    const err = card.querySelector('[data-err]');
+    card.querySelector('[data-ai-rerun]').addEventListener('click', async (ev) => {
+      ev.target.disabled = true; ev.target.textContent = 'Checking…';
+      const { error: aiErr } = await sb.functions.invoke('verify-run', { body: { submission_id: s.id } });
+      if (aiErr) { err.textContent = 'AI check failed. Is ANTHROPIC_API_KEY set in Supabase secrets?'; err.hidden = false; ev.target.disabled = false; ev.target.textContent = 'Re-check'; return; }
+      loadQueue();
+    });
+    card.querySelector('[data-approve]').addEventListener('click', async () => {
+      const score = Number(card.querySelector('[data-score]').value);
+      if (!Number.isFinite(score) || score <= 0) { err.textContent = 'Enter a score above 0.'; err.hidden = false; return; }
+      const { error } = await sb.from('submissions').update({ status: 'verified', score }).eq('id', s.id);
+      if (error) { err.textContent = error.message; err.hidden = false; } else loadQueue();
+    });
+    card.querySelector('[data-reject]').addEventListener('click', async () => {
+      const reason = card.querySelector('[data-reason]').value.trim();
+      if (!reason) { err.textContent = 'Give the player a reason.'; err.hidden = false; return; }
+      const { error } = await sb.from('submissions').update({ status: 'rejected', reject_reason: reason }).eq('id', s.id);
+      if (error) { err.textContent = error.message; err.hidden = false; } else loadQueue();
+    });
+    card.querySelector('[data-feature]')?.addEventListener('click', async () => {
+      const { error } = await sb.from('submissions').update({ status: s.status, score: s.score, reject_reason: s.reject_reason, featured: !s.featured }).eq('id', s.id);
+      if (error) { err.textContent = error.message; err.hidden = false; } else loadQueue();
+    });
+    box.appendChild(card);
+  }
+}
+
+async function loadMissions() {
+  const { data } = await sb.from('missions').select('*').order('opens_at', { ascending: false });
+  const list = $('#mission-list');
+  if (!data?.length) { list.innerHTML = '<p class="dim">No missions yet.</p>'; return; }
+  const now = Date.now();
+  list.innerHTML = data.map((m) => {
+    const open = now >= Date.parse(m.opens_at) && now <= Date.parse(m.closes_at);
+    return `<div class="file-row" style="flex-wrap:wrap">
+      <span><strong>${esc(m.title)}</strong> <span class="dim">· ${m.kind === 'world_final' ? 'World Final for ' + esc(String(m.final_month).slice(0, 7)) : esc(m.week_label)} · ${fmt(m.max_points)} pts${m.members_only ? ' · Members only' : ''}</span></span>
+      <span class="row" style="gap:8px">${open ? '<span class="badge">Open</span>' : '<span class="badge gray">Closed</span>'}<button class="btn btn-ghost" type="button" data-del="${m.id}" style="min-height:36px;padding:0 12px">Delete</button></span>
+      <span class="dim" style="flex-basis:100%">${new Date(m.opens_at).toLocaleString()} → ${new Date(m.closes_at).toLocaleString()}</span>
+    </div>`;
+  }).join('');
+  $$('[data-del]', list).forEach((b) => b.addEventListener('click', async () => {
+    if (b.dataset.armed !== '1') { b.dataset.armed = '1'; b.textContent = 'Confirm delete'; return; }
+    await sb.from('missions').delete().eq('id', Number(b.dataset.del));
+    loadMissions();
+  }));
+}
+
+async function createMission(e) {
+  e.preventDefault();
+  const err = $('#m-err'); err.hidden = true;
+  if ($('#m-kind').value === 'world_final' && !$('#m-final').value) { err.textContent = 'Pick which month this World Final is for.'; err.hidden = false; return; }
+  const opens = new Date($('#m-open').value);
+  const closes = new Date($('#m-close').value);
+  if (!(closes > opens)) { err.textContent = 'Closing time must be after opening time.'; err.hidden = false; return; }
+  const { error } = await sb.from('missions').insert({
+    title: $('#m-title').value.trim(),
+    description: $('#m-desc').value.trim(),
+    week_label: $('#m-week').value.trim(),
+    max_points: Number($('#m-points').value),
+    kind: $('#m-kind').value,
+    members_only: $('#m-members').checked && $('#m-kind').value === 'weekend',
+    final_month: $('#m-kind').value === 'world_final' ? ($('#m-final').value + '-01') : null,
+    opens_at: opens.toISOString(),
+    closes_at: closes.toISOString()
+  });
+  if (error) { err.textContent = error.message; err.hidden = false; return; }
+  $('#mission-form').reset();
+  loadMissions();
+}
+</script>
+</body>
+</html>

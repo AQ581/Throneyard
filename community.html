@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Community — Throneyard</title>
+<meta name="description" content="Find a crew, find players to run missions with, and make friends who play GTA 6 like you.">
+<meta name="theme-color" content="#0A0B0A">
+<link rel="icon" href="/assets/brand/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/assets/brand/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/assets/brand/apple-touch-icon.png">
+<meta property="og:image" content="https://throneyard.com/assets/brand/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/styles.css">
+</head>
+<body>
+<header id="site-header"></header>
+<main class="wrap" style="padding-bottom:88px">
+  <div class="page-head">
+    <span class="eyebrow">Community</span>
+    <h1 class="h2">Find your crew. Make friends who play like you.</h1>
+    <p class="muted">Team up, find players for tonight's run, and climb together.</p>
+  </div>
+
+  <div class="stack" style="gap:24px">
+    <div class="tabs" role="group" aria-label="Community section" style="align-self:flex-start">
+      <button class="tab" type="button" data-tab="lfg" aria-pressed="true">Find players</button>
+      <button class="tab" type="button" data-tab="crews" aria-pressed="false">Crews</button>
+      <button class="tab" type="button" data-tab="friends" aria-pressed="false">Friends</button>
+      <button class="tab" type="button" data-tab="challenges" aria-pressed="false">Challenges</button>
+    </div>
+    <p class="error" id="c-err" role="alert" hidden></p>
+    <p class="ok" id="c-ok" role="status" hidden></p>
+
+    <!-- FIND PLAYERS -->
+    <section id="tab-lfg" class="split">
+      <div class="stack" style="gap:12px;flex:999 1 520px">
+        <div class="row between">
+          <strong style="font-family:var(--display);font-size:19px">Looking for players</strong>
+          <label class="sr-only" for="lfg-filter">Platform</label>
+          <select class="input" id="lfg-filter" style="max-width:200px">
+            <option value="">All platforms</option><option value="ps5">PS5</option><option value="xbox">Xbox</option>
+          </select>
+        </div>
+        <div id="lfg-list" class="stack" style="gap:10px"><p class="dim">Loading…</p></div>
+      </div>
+      <form id="lfg-form" class="card stack" style="gap:12px;flex:1 1 320px">
+        <strong style="font-family:var(--display);font-size:19px">Post: find players</strong>
+        <div class="field"><label for="lfg-title">What are you looking for?</label><input class="input" id="lfg-title" maxlength="80" placeholder="Need 2 for heist missions tonight" required></div>
+        <div class="row" style="align-items:flex-start">
+          <div class="field" style="flex:1 1 140px"><label for="lfg-platform">Platform</label>
+            <select class="input" id="lfg-platform"><option value="ps5">PS5</option><option value="xbox">Xbox</option><option value="any">Any</option></select></div>
+          <div class="field" style="flex:1 1 160px"><label for="lfg-time">When</label><input class="input" id="lfg-time" maxlength="40" placeholder="Fri 9pm ET"></div>
+        </div>
+        <div class="field"><label for="lfg-body">Details (optional)</label><textarea class="input" id="lfg-body" maxlength="300" placeholder="Play style, mic, skill level…"></textarea></div>
+        <button class="btn btn-primary" type="submit">Post</button>
+        <span class="dim" style="font-size:13px">Posts last 7 days. Free players: 1 active post. Members: 3, pinned to the top. Add your Discord handle to your <a href="/submit.html">player card</a> so people can reach you.</span>
+      </form>
+    </section>
+
+    <!-- CREWS -->
+    <section id="tab-crews" class="stack" style="gap:20px" hidden>
+      <div id="my-crew"></div>
+      <div class="table-box">
+        <table>
+          <thead><tr><th scope="col">Rank</th><th scope="col">Crew</th><th scope="col">Home</th><th scope="col">Members</th><th scope="col">Crew score</th><th scope="col"><span class="sr-only">Action</span></th></tr></thead>
+          <tbody id="crew-body"><tr><td colspan="6" class="empty">Loading…</td></tr></tbody>
+        </table>
+      </div>
+      <form id="crew-form" class="card stack" style="gap:12px;max-width:640px">
+        <div class="row between"><strong style="font-family:var(--display);font-size:19px">Start a crew</strong><span class="badge member">Members</span></div>
+        <div class="row" style="align-items:flex-start">
+          <div class="field" style="flex:2 1 220px"><label for="crew-name">Crew name</label><input class="input" id="crew-name" maxlength="32" required></div>
+          <div class="field" style="flex:1 1 100px"><label for="crew-tag">Tag (2–5)</label><input class="input" id="crew-tag" maxlength="5" pattern="[A-Za-z0-9]{2,5}" placeholder="NBX" required></div>
+        </div>
+        <div class="field"><label for="crew-desc">What's your crew about?</label><textarea class="input" id="crew-desc" maxlength="240"></textarea></div>
+        <button class="btn btn-primary" type="submit">Create crew</button>
+        <span class="dim" style="font-size:13px">Anyone can join a crew for free. Starting one is a Throne Pass perk. Home city comes from your player card. Crew score = members' total verified points.</span>
+      </form>
+    </section>
+
+    <!-- CHALLENGES -->
+    <section id="tab-challenges" class="split" hidden>
+      <div class="stack" style="gap:12px;flex:999 1 520px">
+        <strong style="font-family:var(--display);font-size:19px">Your 1v1s</strong>
+        <div id="ch-list" class="stack" style="gap:10px"><p class="dim">Loading…</p></div>
+      </div>
+      <form id="ch-form" class="card stack" style="gap:12px;flex:1 1 320px">
+        <strong style="font-family:var(--display);font-size:19px">Challenge a friend</strong>
+        <div class="field"><label for="ch-friend">Friend</label><select class="input" id="ch-friend" required></select></div>
+        <div class="field"><label for="ch-mission">Mission</label><select class="input" id="ch-mission" required></select></div>
+        <div class="field"><label for="ch-msg">Trash talk (optional)</label><input class="input" id="ch-msg" maxlength="140" placeholder="Bet you can't beat 2:10"></div>
+        <button class="btn btn-primary" type="submit">Send challenge</button>
+        <span class="dim" style="font-size:13px">Best verified score on the mission wins when it closes. You'll both get notified.</span>
+      </form>
+    </section>
+
+    <!-- FRIENDS -->
+    <section id="tab-friends" class="split" hidden>
+      <div class="stack" style="gap:12px;flex:999 1 520px">
+        <strong style="font-family:var(--display);font-size:19px">You vs your friends · this month</strong>
+        <div class="table-box">
+          <table>
+            <thead><tr><th scope="col">Rank</th><th scope="col">Player</th><th scope="col">Location</th><th scope="col">Missions</th><th scope="col">Score</th></tr></thead>
+            <tbody id="fb-body"><tr><td colspan="5" class="empty">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="stack" style="gap:16px;flex:1 1 320px">
+        <form id="add-friend" class="card stack" style="gap:12px">
+          <strong style="font-family:var(--display);font-size:19px">Add a friend</strong>
+          <div class="field"><label for="friend-tag">Gamertag</label><input class="input" id="friend-tag" maxlength="32" required></div>
+          <button class="btn btn-primary" type="submit">Send request</button>
+        </form>
+        <div class="card stack" style="gap:10px">
+          <strong style="font-family:var(--display);font-size:19px">Requests &amp; friends</strong>
+          <div id="friend-list" class="stack" style="gap:8px"><p class="dim">Loading…</p></div>
+        </div>
+      </div>
+    </section>
+  </div>
+</main>
+<footer id="site-footer"></footer>
+
+<script type="module">
+import { sb, $, $$, esc, fmt, pad, renderChrome, currentProfile, playerLink, memberChip } from '/assets/app.js';
+renderChrome('community');
+
+const msg = (text, ok = false) => {
+  $('#c-err').hidden = true; $('#c-ok').hidden = true;
+  const el = ok ? $('#c-ok') : $('#c-err'); el.textContent = text; el.hidden = false;
+};
+const { session, profile } = await currentProfile();
+const me = session?.user?.id || null;
+const signInLink = '<a href="/submit.html">Sign in</a>';
+const requireSignIn = () => { if (!me || !profile) { msg('Sign in and set up your player card first.'); return false; } return true; };
+
+// Tabs (hash: #lfg, #crews, #friends)
+function openTab(name) {
+  $$('[data-tab]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.tab === name)));
+  ['lfg', 'crews', 'friends', 'challenges'].forEach((t) => ($('#tab-' + t).hidden = t !== name));
+  if (name === 'crews') loadCrews();
+  if (name === 'friends') loadFriends();
+  if (name === 'challenges') loadChallenges();
+}
+$$('[data-tab]').forEach((b) => b.addEventListener('click', () => { history.replaceState(null, '', '#' + b.dataset.tab); openTab(b.dataset.tab); }));
+
+// ---------- Find players ----------
+const plat = { ps5: 'PS5', xbox: 'Xbox', any: 'Any platform' };
+async function loadLfg() {
+  const { data, error } = await sb.rpc('lfg_feed', { p_platform: $('#lfg-filter').value || null, p_limit: 50 });
+  const box = $('#lfg-list');
+  if (error) { box.innerHTML = '<p class="error">Couldn\'t load posts.</p>'; return; }
+  if (!data.length) { box.innerHTML = '<div class="card empty">No posts yet. Be the first to find your squad.</div>'; return; }
+  box.innerHTML = data.map((p) => `
+    <article class="post${p.member ? ' pinned' : ''}">
+      <div class="row between" style="gap:8px">
+        <strong style="font-size:17px">${esc(p.title)}</strong>
+        <span class="row" style="gap:6px">${p.member ? '<span class="badge member">Pinned · Member</span>' : ''}<span class="badge gray">${plat[p.platform]}</span></span>
+      </div>
+      ${p.body ? `<p class="muted" style="font-size:15px">${esc(p.body)}</p>` : ''}
+      <div class="row between" style="gap:8px;font-size:14px">
+        <span class="muted">${playerLink(p.gamertag, p.member)} · ${esc(p.city)}, ${esc(p.country)}${p.play_time ? ' · ' + esc(p.play_time) : ''}</span>
+        <span class="row" style="gap:8px">${p.discord_handle ? `<span class="dim">Discord: <strong style="color:var(--text)">${esc(p.discord_handle)}</strong></span>` : ''}
+          ${p.mine ? `<button class="btn btn-ghost" type="button" data-del="${p.id}" style="min-height:36px;padding:0 12px">Remove</button>` : ''}</span>
+      </div>
+    </article>`).join('');
+  $$('[data-del]', box).forEach((b) => b.addEventListener('click', async () => {
+    await sb.from('lfg_posts').delete().eq('id', Number(b.dataset.del));
+    loadLfg();
+  }));
+}
+$('#lfg-filter').addEventListener('change', loadLfg);
+$('#lfg-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if (!requireSignIn()) return;
+  const { error } = await sb.from('lfg_posts').insert({
+    user_id: me, title: $('#lfg-title').value.trim(), platform: $('#lfg-platform').value,
+    play_time: $('#lfg-time').value.trim(), body: $('#lfg-body').value.trim()
+  });
+  if (error) return msg(error.message.replace(/^.*?: /, ''));
+  $('#lfg-form').reset(); msg('Posted. Players can find you now.', true); loadLfg();
+});
+
+// ---------- Crews ----------
+async function loadCrews() {
+  const [{ data: board }, mine] = await Promise.all([
+    sb.rpc('crew_board', { p_limit: 100 }),
+    me ? sb.from('crew_members').select('crew_id, role').eq('user_id', me).maybeSingle() : Promise.resolve({ data: null })
+  ]);
+  const myCrew = mine.data;
+  const body = $('#crew-body');
+  body.innerHTML = board && board.length ? board.map((c) => `<tr>
+      <td><span class="rank ${Number(c.rank) === 1 ? 'r1' : Number(c.rank) <= 3 ? 'r' + c.rank : ''}">${pad(c.rank)}</span></td>
+      <td><div class="stack" style="gap:2px"><span><span class="crew-tag">[${esc(c.tag)}]</span> <strong>${esc(c.name)}</strong></span>${c.description ? `<span class="dim" style="font-size:13px">${esc(c.description)}</span>` : ''}</div></td>
+      <td class="muted">${esc(c.city)}, ${esc(c.country)}</td>
+      <td class="muted">${fmt(c.members)}</td>
+      <td><span class="score">${fmt(c.score)}</span></td>
+      <td>${!myCrew ? `<button class="btn btn-ghost" type="button" data-join="${c.id}" style="min-height:36px;padding:0 12px">Join</button>` : myCrew.crew_id === c.id ? '<span class="badge">Your crew</span>' : ''}</td>
+    </tr>`).join('') : '<tr><td colspan="6" class="empty">No crews yet. Start the first one.</td></tr>';
+  $$('[data-join]', body).forEach((b) => b.addEventListener('click', async () => {
+    if (!requireSignIn()) return;
+    const { error } = await sb.from('crew_members').insert({ crew_id: Number(b.dataset.join), user_id: me });
+    if (error) return msg(error.code === '23505' ? 'You\'re already in a crew. Leave it first.' : error.message);
+    msg('Welcome to the crew.', true); loadCrews();
+  }));
+
+  const box = $('#my-crew');
+  $('#crew-form').hidden = !!myCrew;
+  if (!myCrew) { box.innerHTML = ''; return; }
+  const c = (board || []).find((x) => x.id === myCrew.crew_id);
+  const { data: roster } = await sb.rpc('crew_roster', { p_crew: myCrew.crew_id });
+  box.innerHTML = `<div class="card stack" style="gap:12px">
+    <div class="row between"><strong style="font-family:var(--display);font-size:22px"><span class="crew-tag">[${esc(c?.tag)}]</span> ${esc(c?.name)}</strong>
+      <span class="row" style="gap:8px"><span class="dim">Rank #${c ? fmt(c.rank) : '—'} · ${c ? fmt(c.score) : 0} pts</span>
+      <button class="btn btn-ghost" type="button" id="leave-crew" style="min-height:36px;padding:0 12px">${myCrew.role === 'owner' ? 'Disband crew' : 'Leave crew'}</button></span></div>
+    <div class="stack" style="gap:6px">${(roster || []).map((r) => `<div class="file-row"><span>${playerLink(r.gamertag, r.member)} ${r.role === 'owner' ? '<span class="badge gray">Owner</span>' : ''}${memberChip(r.member)}</span><span class="score">${fmt(r.score)}</span></div>`).join('')}</div>
+    <span class="dim" style="font-size:13px">Invite friends: send them to throneyard.com/community.html#crews and have them hit Join.</span>
+  </div>`;
+  $('#leave-crew').addEventListener('click', async (ev) => {
+    const b = ev.currentTarget;
+    if (b.dataset.armed !== '1') { b.dataset.armed = '1'; b.textContent = myCrew.role === 'owner' ? 'Confirm: disband for everyone' : 'Confirm leave'; return; }
+    await sb.from('crew_members').delete().eq('user_id', me);
+    msg(myCrew.role === 'owner' ? 'Crew disbanded.' : 'You left the crew.', true); loadCrews();
+  });
+}
+$('#crew-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if (!requireSignIn()) return;
+  const { error } = await sb.from('crews').insert({
+    owner: me, name: $('#crew-name').value.trim(), tag: $('#crew-tag').value.trim().toUpperCase(),
+    city: profile.city, country: profile.country, description: $('#crew-desc').value.trim()
+  });
+  if (error) {
+    if (/row-level security/i.test(error.message)) return msg('Starting a crew is a Throne Pass perk. You can still join any crew for free.');
+    if (error.code === '23505') return msg('That crew name or tag is taken.');
+    return msg(error.message.replace(/^.*?: /, ''));
+  }
+  $('#crew-form').reset(); msg('Crew created. Invite your friends.', true); loadCrews();
+});
+
+// ---------- Friends ----------
+async function loadFriends() {
+  const fb = $('#fb-body'); const list = $('#friend-list');
+  if (!me) {
+    fb.innerHTML = `<tr><td colspan="5" class="empty">${signInLink} to see how you stack up against your friends.</td></tr>`;
+    list.innerHTML = `<p class="dim">${signInLink} to add friends.</p>`;
+    return;
+  }
+  const [{ data: board }, { data: friends }] = await Promise.all([sb.rpc('friends_board'), sb.rpc('my_friends')]);
+  fb.innerHTML = board && board.length > 1 ? board.map((r) => `<tr${r.is_me ? ' style="background:rgba(200,255,61,.05)"' : ''}>
+      <td><span class="rank ${Number(r.rank) === 1 ? 'r1' : ''}">${pad(r.rank)}</span></td>
+      <td><strong>${playerLink(r.gamertag)}</strong>${r.is_me ? ' <span class="badge gray">You</span>' : ''}</td>
+      <td class="muted">${esc(r.city)}, ${esc(r.country)}</td><td class="muted">${fmt(r.missions)}</td>
+      <td><span class="score">${fmt(r.score)}</span></td></tr>`).join('')
+    : '<tr><td colspan="5" class="empty">Add friends to start a rivalry. Your friends board shows who\'s winning this month.</td></tr>';
+  if (!friends || !friends.length) { list.innerHTML = '<p class="dim">No friends yet. Add someone by gamertag, or from any player\'s profile.</p>'; return; }
+  list.innerHTML = friends.map((f) => {
+    let action = '';
+    if (f.status === 'pending' && f.direction === 'in') action = `<button class="btn btn-primary" type="button" data-accept="${esc(f.gamertag)}" style="min-height:36px;padding:0 12px">Accept</button>`;
+    else if (f.status === 'pending') action = '<span class="dim">Sent</span>';
+    return `<div class="file-row"><span>${playerLink(f.gamertag, f.member)} <span class="dim">· ${esc(f.city)}</span></span>${action || '<span class="badge gray">Friends</span>'}</div>`;
+  }).join('');
+  $$('[data-accept]', list).forEach((b) => b.addEventListener('click', async () => {
+    const { data: p } = await sb.from('profiles').select('id').ilike('gamertag', b.dataset.accept).maybeSingle();
+    if (!p) return;
+    const { error } = await sb.from('friendships').update({ status: 'accepted' }).eq('requester', p.id).eq('addressee', me);
+    if (error) return msg(error.message);
+    msg(`You and ${b.dataset.accept} are now friends.`, true); loadFriends();
+  }));
+}
+$('#add-friend').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if (!requireSignIn()) return;
+  const tag = $('#friend-tag').value.trim();
+  const { data: p } = await sb.from('profiles').select('id, gamertag').ilike('gamertag', tag.replace(/[%_]/g, '')).maybeSingle();
+  if (!p) return msg('No player with that gamertag yet.');
+  if (p.id === me) return msg('That\'s you.');
+  const { error } = await sb.from('friendships').insert({ requester: me, addressee: p.id });
+  if (error) return msg(error.code === '23505' ? 'You already sent a request.' : error.message.replace(/^.*?: /, ''));
+  $('#add-friend').reset(); msg(`Friend request sent to ${p.gamertag}.`, true); loadFriends();
+});
+
+// ---------- Challenges ----------
+async function loadChallenges() {
+  const list = $('#ch-list');
+  if (!me) { list.innerHTML = `<p class="dim">${signInLink} to challenge friends.</p>`; $('#ch-form').hidden = true; return; }
+  const nowIso = new Date().toISOString();
+  const [{ data: ch }, { data: friends }, { data: missions }] = await Promise.all([
+    sb.rpc('my_challenges'),
+    sb.rpc('my_friends'),
+    sb.from('missions').select('id, title, week_label, closes_at, members_only').eq('kind', 'weekend').gt('closes_at', nowIso).order('opens_at')
+  ]);
+  const accepted = (friends || []).filter((f) => f.status === 'accepted');
+  $('#ch-friend').innerHTML = accepted.length ? accepted.map((f) => `<option value="${esc(f.gamertag)}">${esc(f.gamertag)}</option>`).join('') : '<option value="">Add friends first</option>';
+  $('#ch-mission').innerHTML = (missions || []).length ? missions.map((m) => `<option value="${m.id}">${esc(m.week_label)} · ${esc(m.title)}</option>`).join('') : '<option value="">No open missions right now</option>';
+  const pre = new URLSearchParams(location.search).get('vs');
+  if (pre) $('#ch-friend').value = pre;
+  if (!ch || !ch.length) { list.innerHTML = '<div class="card empty">No challenges yet. Call out a friend, then prove it on the next mission.</div>'; return; }
+  list.innerHTML = ch.map((x) => {
+    const lead = x.my_score > x.rival_score ? 'you' : x.my_score < x.rival_score ? 'them' : 'tie';
+    let status = '';
+    if (x.outcome === 'declined') status = '<span class="badge gray">Declined</span>';
+    else if (x.outcome === 'pending') status = x.i_challenged ? '<span class="badge gray">Waiting for reply</span>' : '';
+    else if (x.outcome === 'live') status = `<span class="badge${lead === 'you' ? '' : ' gray'}">${lead === 'you' ? 'You\'re leading' : lead === 'them' ? 'They\'re leading' : 'Tied'}</span>`;
+    else status = `<span class="badge${lead === 'you' ? '' : lead === 'them' ? ' warn' : ' gray'}">${lead === 'you' ? 'You won' : lead === 'them' ? 'You lost' : 'Draw'}</span>`;
+    return `<article class="post">
+      <div class="row between" style="gap:8px"><strong>${x.i_challenged ? 'You vs' : ''} ${playerLink(x.rival, x.rival_member)}${x.i_challenged ? '' : ' challenged you'}</strong>${status}</div>
+      <span class="dim">${esc(x.mission)} · ${esc(x.week_label)} · ${x.outcome === 'final' ? 'closed' : 'closes ' + new Date(x.closes_at).toLocaleString([], { weekday: 'short', hour: 'numeric', minute: '2-digit' })}</span>
+      ${x.message ? `<p class="muted" style="font-size:15px">"${esc(x.message)}"</p>` : ''}
+      <div class="row" style="gap:18px;font-size:15px"><span>You <span class="score">${fmt(x.my_score)}</span></span><span>${esc(x.rival)} <span class="score">${fmt(x.rival_score)}</span></span></div>
+      ${x.outcome === 'pending' && !x.i_challenged ? `<div class="row" style="gap:8px"><button class="btn btn-primary" type="button" data-ch-accept="${x.id}" style="min-height:36px">Accept</button><button class="btn btn-ghost" type="button" data-ch-decline="${x.id}" style="min-height:36px">Decline</button></div>` : ''}
+    </article>`;
+  }).join('');
+  $$('[data-ch-accept],[data-ch-decline]', list).forEach((b) => b.addEventListener('click', async () => {
+    const id = Number(b.dataset.chAccept || b.dataset.chDecline);
+    const { error } = await sb.from('challenges').update({ status: b.dataset.chAccept ? 'accepted' : 'declined' }).eq('id', id);
+    if (error) return msg(error.message);
+    loadChallenges();
+  }));
+}
+$('#ch-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if (!requireSignIn()) return;
+  const tag = $('#ch-friend').value, mission = Number($('#ch-mission').value);
+  if (!tag || !mission) return msg('Pick a friend and an open mission.');
+  const { data: p } = await sb.from('profiles').select('id').ilike('gamertag', tag).maybeSingle();
+  if (!p) return msg('Couldn\'t find that friend.');
+  const { error } = await sb.from('challenges').insert({ challenger: me, opponent: p.id, mission_id: mission, message: $('#ch-msg').value.trim() });
+  if (error) return msg(error.code === '23505' ? 'You two already have a challenge on this mission.' : /row-level/i.test(error.message) ? 'You can only challenge friends on open weekend missions.' : error.message);
+  $('#ch-msg').value = ''; msg(`Challenge sent to ${tag}.`, true); loadChallenges();
+});
+
+loadLfg();
+const start = location.hash.replace('#', '');
+openTab(['lfg', 'crews', 'friends', 'challenges'].includes(start) ? start : 'lfg');
+</script>
+</body>
+</html>

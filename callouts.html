@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Callouts — Throneyard</title>
+<meta name="description" content="Call out your rivals, back it up with verified runs, and settle it on the board.">
+<meta name="theme-color" content="#0A0B0A">
+<link rel="icon" href="/assets/brand/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/assets/brand/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/assets/brand/apple-touch-icon.png">
+<meta property="og:image" content="https://throneyard.com/assets/brand/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/styles.css">
+</head>
+<body>
+<header id="site-header"></header>
+<main class="wrap narrow-feed" style="padding-bottom:88px">
+  <div class="page-head">
+    <span class="eyebrow">Callouts</span>
+    <h1 class="h2">Talk it. Then prove it.</h1>
+    <p class="muted">Call out a rival, back it up with a verified run, and settle it on the board. Keep it about the game.</p>
+  </div>
+
+  <!-- Thread view (#post-123) -->
+  <section id="thread" class="stack" style="gap:12px" hidden>
+    <a href="#" id="back" class="dim">← All callouts</a>
+    <div id="thread-list" class="stack" style="gap:10px"></div>
+    <form id="reply-form" class="card stack" style="gap:10px" hidden>
+      <label for="reply-body" class="label">Your reply</label>
+      <textarea class="input" id="reply-body" maxlength="280" rows="3" placeholder="Say it to their face…" required></textarea>
+      <div class="row between"><span class="dim" id="reply-count">280</span><button class="btn btn-primary" type="submit" id="reply-btn">Reply</button></div>
+      <p class="error" id="reply-err" role="alert" hidden></p>
+    </form>
+  </section>
+
+  <!-- Feed view -->
+  <section id="feed-view" class="stack" style="gap:16px">
+    <form id="composer" class="card stack" style="gap:12px" hidden>
+      <textarea class="input" id="post-body" maxlength="280" rows="3" placeholder="Who's taking the crown this weekend?" required></textarea>
+      <div class="split" style="gap:10px">
+        <div class="field"><label for="post-rival">Call out a player (optional)</label><input class="input" id="post-rival" maxlength="33" placeholder="@gamertag" autocomplete="off"></div>
+        <div class="field"><label for="post-clip">Attach a verified run (optional)</label><select class="input" id="post-clip"><option value="">None</option></select></div>
+      </div>
+      <div class="row between"><span class="dim" id="post-count">280</span><button class="btn btn-primary" type="submit" id="post-btn">Post callout</button></div>
+      <p class="error" id="post-err" role="alert" hidden></p>
+    </form>
+    <div id="signed-out" class="card row between" style="gap:12px;flex-wrap:wrap" hidden>
+      <span class="muted">Sign in to post callouts, react and reply.</span>
+      <a class="btn btn-primary" href="/submit.html">Sign in</a>
+    </div>
+
+    <div class="tabs" role="group" aria-label="Show">
+      <button class="tab" type="button" data-scope="all" aria-pressed="true">Everyone</button>
+      <button class="tab" type="button" data-scope="friends" aria-pressed="false">Friends</button>
+      <button class="tab" type="button" data-scope="mentions" aria-pressed="false">Called out: me</button>
+    </div>
+    <div id="feed" class="stack" style="gap:10px"><p class="dim">Loading…</p></div>
+    <button class="btn btn-ghost" type="button" id="more" hidden>Load more</button>
+  </section>
+</main>
+<footer id="site-footer"></footer>
+
+<script type="module">
+import { sb, $, $$, renderChrome } from '/assets/app.js';
+import { postHTML, wirePosts } from '/assets/posts.js';
+
+renderChrome('callouts');
+const { data: { session } } = await sb.auth.getSession();
+let profileOk = false;
+if (session) {
+  const { data: prof } = await sb.from('profiles').select('id').eq('id', session.user.id).maybeSingle();
+  profileOk = !!prof;
+}
+$('#composer').hidden = !profileOk;
+$('#signed-out').hidden = profileOk;
+if (session && !profileOk) {
+  $('#signed-out').querySelector('span').textContent = 'Set up your player card to start posting.';
+  $('#signed-out').querySelector('a').textContent = 'Set up player card';
+}
+
+const counter = (input, out) => input.addEventListener('input', () => { out.textContent = String(280 - input.value.length); });
+counter($('#post-body'), $('#post-count'));
+counter($('#reply-body'), $('#reply-count'));
+
+// Prefill a callout from a profile link: /callouts.html?callout=Gamertag
+const pre = new URLSearchParams(location.search).get('callout');
+if (pre) { $('#post-rival').value = '@' + pre; $('#post-body').focus(); }
+
+// My verified runs, to attach as proof
+if (profileOk) {
+  const { data: runs } = await sb.from('submissions').select('id, score, missions(title)').eq('user_id', session.user.id).eq('status', 'verified').order('created_at', { ascending: false }).limit(20);
+  for (const r of runs || []) {
+    const o = document.createElement('option');
+    o.value = r.id; o.textContent = `${r.missions?.title || 'Run'} · ${r.score} pts`;
+    $('#post-clip').append(o);
+  }
+}
+
+// ---- Feed ----
+let scope = 'all';
+let oldest = null;
+const feed = $('#feed');
+wirePosts(feed);
+wirePosts($('#thread-list'), { onChange: () => openThread(currentThread) });
+
+async function loadFeed(reset = true) {
+  if (reset) { oldest = null; feed.innerHTML = '<p class="dim">Loading…</p>'; }
+  if ((scope === 'friends' || scope === 'mentions') && !session) {
+    feed.innerHTML = '<p class="dim">Sign in to see this.</p>'; $('#more').hidden = true; return;
+  }
+  const { data, error } = await sb.rpc('feed', { p_scope: scope, p_before: oldest, p_limit: 30 });
+  if (error) { feed.innerHTML = '<p class="error">Couldn\'t load callouts. Refresh to try again.</p>'; return; }
+  if (reset) feed.innerHTML = '';
+  if (reset && !data.length) {
+    feed.innerHTML = `<p class="dim">${scope === 'mentions' ? 'Nobody has called you out yet. Climb higher and they will.' : scope === 'friends' ? 'No callouts from your friends yet.' : 'No callouts yet. Be the first to throw down.'}</p>`;
+  }
+  feed.insertAdjacentHTML('beforeend', data.map((p) => postHTML(p)).join(''));
+  if (data.length) oldest = data[data.length - 1].id;
+  $('#more').hidden = data.length < 30;
+}
+$('#more').addEventListener('click', () => loadFeed(false));
+$$('[data-scope]').forEach((b) => b.addEventListener('click', () => {
+  scope = b.dataset.scope;
+  $$('[data-scope]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+  loadFeed();
+}));
+
+$('#composer').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const err = $('#post-err'); err.hidden = true;
+  const body = $('#post-body').value.trim();
+  if (!body) { err.textContent = 'Write something first.'; err.hidden = false; return; }
+  const btn = $('#post-btn'); btn.disabled = true; btn.textContent = 'Posting…';
+  const { error } = await sb.rpc('create_post', {
+    p_body: body,
+    p_rival: $('#post-rival').value.trim().replace(/^@/, '') || null,
+    p_clip: $('#post-clip').value ? Number($('#post-clip').value) : null,
+    p_reply_to: null
+  });
+  btn.disabled = false; btn.textContent = 'Post callout';
+  if (error) { err.textContent = error.message; err.hidden = false; return; }
+  $('#composer').reset(); $('#post-count').textContent = '280';
+  if (scope !== 'all') { scope = 'all'; $$('[data-scope]').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.scope === 'all'))); }
+  loadFeed();
+});
+
+// ---- Thread ----
+let currentThread = null;
+async function openThread(id) {
+  currentThread = id;
+  $('#feed-view').hidden = true; $('#thread').hidden = false;
+  $('#reply-form').hidden = !profileOk;
+  const { data } = await sb.rpc('post_thread', { p_id: id });
+  $('#thread-list').innerHTML = data && data.length ? data.map((p) => postHTML(p)).join('') : '<p class="dim">This callout was deleted.</p>';
+  window.scrollTo(0, 0);
+}
+function route() {
+  const m = location.hash.match(/^#post-(\d+)$/);
+  if (m) openThread(Number(m[1]));
+  else { $('#thread').hidden = true; $('#feed-view').hidden = false; if (currentThread !== null || !feed.dataset.loaded) { feed.dataset.loaded = '1'; currentThread = null; loadFeed(); } }
+}
+window.addEventListener('hashchange', route);
+$('#back').addEventListener('click', (e) => { e.preventDefault(); history.pushState('', '', location.pathname + location.search); route(); });
+
+$('#reply-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const err = $('#reply-err'); err.hidden = true;
+  const body = $('#reply-body').value.trim();
+  if (!body) return;
+  const btn = $('#reply-btn'); btn.disabled = true;
+  const { error } = await sb.rpc('create_post', { p_body: body, p_rival: null, p_clip: null, p_reply_to: currentThread });
+  btn.disabled = false;
+  if (error) { err.textContent = error.message; err.hidden = false; return; }
+  $('#reply-body').value = ''; $('#reply-count').textContent = '280';
+  openThread(currentThread);
+});
+
+route();
+</script>
+</body>
+</html>

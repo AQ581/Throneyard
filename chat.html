@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chat — Throneyard</title>
+<meta name="description" content="Chat with GTA 6 players: rooms, your city, your crew and DMs with friends.">
+<meta name="theme-color" content="#0A0B0A">
+<link rel="icon" href="/assets/brand/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/assets/brand/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/assets/brand/apple-touch-icon.png">
+<meta property="og:image" content="https://throneyard.com/assets/brand/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/styles.css">
+</head>
+<body>
+<header id="site-header"></header>
+<main class="wrap" style="padding-top:24px;padding-bottom:40px">
+  <div class="chat-shell">
+    <!-- Sidebar -->
+    <aside class="chat-side" aria-label="Rooms and messages">
+      <div class="chat-side-group">
+        <span class="chat-side-label">Rooms</span>
+        <div id="room-list"></div>
+      </div>
+      <div class="chat-side-group" id="my-rooms" hidden>
+        <span class="chat-side-label">Yours</span>
+        <div id="my-room-list"></div>
+      </div>
+      <div class="chat-side-group">
+        <span class="chat-side-label">Direct messages</span>
+        <div id="dm-list"><p class="dim" style="font-size:13px;padding:4px 10px">Sign in to message friends.</p></div>
+      </div>
+    </aside>
+
+    <!-- Conversation -->
+    <section class="chat-main" aria-live="polite">
+      <div class="chat-head">
+        <div class="stack" style="gap:2px;min-width:0">
+          <strong id="conv-title" style="font-family:var(--display);font-size:19px"># General</strong>
+          <span id="conv-desc" class="dim" style="font-size:13px"></span>
+        </div>
+        <span id="online" class="chip" style="padding:4px 10px;font-size:12px" hidden><span class="dot"></span><span id="online-n">0</span> online</span>
+      </div>
+      <div id="messages" class="chat-messages" tabindex="0">
+        <button class="btn btn-ghost" type="button" id="load-earlier" hidden style="align-self:center;min-height:36px">Load earlier messages</button>
+        <div id="msg-list" class="stack" style="gap:2px"></div>
+      </div>
+      <p class="error" id="chat-err" role="alert" hidden style="padding:0 18px"></p>
+      <form id="composer" class="chat-composer">
+        <label for="msg-input" class="sr-only">Message</label>
+        <textarea id="msg-input" class="input" rows="1" maxlength="500" placeholder="Say something…" autocomplete="off"></textarea>
+        <button class="btn btn-primary" type="submit" id="send-btn">Send</button>
+      </form>
+      <div id="composer-locked" class="chat-composer" hidden><span class="dim" id="locked-text"></span></div>
+    </section>
+  </div>
+  <p class="dim" style="font-size:12px;margin-top:10px">Be cool. No harassment, hate, scams or spam. Report anything that crosses the line, and block anyone you don't want to hear from. <a href="/rules.html">Community rules</a></p>
+</main>
+<footer id="site-footer"></footer>
+
+<script type="module">
+import { sb, $, $$, esc, fmt, renderChrome, currentProfile, playerHref, memberChip, rtReady } from '/assets/app.js';
+renderChrome('chat');
+
+const { session, profile } = await currentProfile();
+const me = session?.user?.id || null;
+let isAdmin = false;
+if (me) { const { data } = await sb.rpc('is_admin'); isAdmin = !!data; }
+let isMember = false;
+if (me) {
+  const { data } = await sb.from('memberships').select('status, current_period_end').eq('user_id', me).maybeSingle();
+  isMember = !!data && ['active', 'trialing'].includes(data.status) && (!data.current_period_end || new Date(data.current_period_end) > new Date());
+}
+let blocked = new Set();
+if (me) { const { data } = await sb.from('blocks').select('blocked').eq('blocker', me); blocked = new Set((data || []).map((b) => b.blocked)); }
+
+const HONOR = { world: ['honor-world', 'World Champion'], continent: ['honor-continent', 'Continental Champ'], city: ['honor-city', 'City Champ'] };
+const cityRoom = (p) => 'city:' + String(p.country || '').trim().toLowerCase() + '|' + String(p.city || '').trim().toLowerCase();
+const err = (t) => { const e = $('#chat-err'); e.textContent = t; e.hidden = !t; };
+const timeOf = (ts) => {
+  const d = new Date(ts), now = new Date();
+  return d.toDateString() === now.toDateString() ? d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+    : d.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' + d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+};
+
+// ---------- Rooms ----------
+const { data: roomSetting } = await sb.from('settings').select('value').eq('key', 'chat_rooms').maybeSingle();
+const ROOMS = roomSetting?.value || [{ id: 'lounge', name: 'General', desc: 'Hang out, meet players' }];
+let myCrew = null;
+if (me) {
+  const { data } = await sb.from('crew_members').select('crew_id, crews(name, tag)').eq('user_id', me).maybeSingle();
+  myCrew = data;
+}
+const extraRooms = [];
+if (profile) extraRooms.push({ id: cityRoom(profile), name: `${profile.city}`, desc: `Players in ${profile.city}, ${profile.country}` });
+if (myCrew) extraRooms.push({ id: 'crew:' + myCrew.crew_id, name: `[${myCrew.crews?.tag}] ${myCrew.crews?.name}`, desc: 'Private to your crew' });
+
+function roomBtn(r) {
+  const locked = r.members && !isMember && !isAdmin;
+  return `<button type="button" class="chat-item" data-room="${esc(r.id)}"${locked ? ' data-locked="1"' : ''}>
+    <span class="chat-hash">${r.id.startsWith('crew:') ? '◆' : r.id.startsWith('city:') ? '⌂' : '#'}</span>
+    <span class="chat-item-name">${esc(r.name)}</span>${locked ? '<span class="badge member" style="font-size:10px">Pass</span>' : ''}</button>`;
+}
+$('#room-list').innerHTML = ROOMS.map(roomBtn).join('');
+if (extraRooms.length) { $('#my-rooms').hidden = false; $('#my-room-list').innerHTML = extraRooms.map(roomBtn).join(''); }
+
+// ---------- Rendering ----------
+function msgHtml(m, kind = 'room') {
+  const mine = me && m.user_id === me;
+  const h = m.honor && HONOR[m.honor];
+  const actions = me ? `<span class="msg-actions">
+      ${!mine ? `<button type="button" data-report="${m.id}" data-kind="${kind}">Report</button><button type="button" data-block="${esc(m.user_id)}" data-tag="${esc(m.gamertag)}">Block</button>` : ''}
+      ${(mine || isAdmin) && kind === 'room' ? `<button type="button" data-del="${m.id}">Delete</button>` : ''}
+    </span>` : '';
+  return `<div class="msg${mine ? ' mine' : ''}" data-id="${m.id}" data-user="${esc(m.user_id)}">
+    <div class="avatar" aria-hidden="true">${esc((m.gamertag || '?').charAt(0).toUpperCase())}</div>
+    <div class="msg-body">
+      <div class="msg-meta"><a href="${playerHref(m.gamertag)}" class="player-link${m.member ? ' name-member' : ''}"><strong>${esc(m.gamertag)}</strong></a>
+        ${h ? `<span class="badge ${h[0]}" style="font-size:10px">${h[1]}</span>` : ''}${m.member ? memberChip(true).replace('class="badge member"', 'class="badge member" style="font-size:10px"') : ''}
+        <span class="dim" style="font-size:12px">${timeOf(m.created_at)}</span>${actions}</div>
+      <div class="msg-text">${esc(m.body)}</div>
+    </div></div>`;
+}
+const list = $('#msg-list'), box = $('#messages');
+const nearBottom = () => box.scrollHeight - box.scrollTop - box.clientHeight < 120;
+const toBottom = () => { box.scrollTop = box.scrollHeight; };
+function append(m, kind) {
+  if (blocked.has(m.user_id) || list.querySelector(`[data-id="${m.id}"]`)) return;
+  const stick = nearBottom() || (me && m.user_id === me);
+  if (list.querySelector('.chat-empty')) list.innerHTML = '';
+  list.insertAdjacentHTML('beforeend', msgHtml(m, kind));
+  if (stick) toBottom();
+}
+
+// ---------- Conversation state ----------
+let current = null;      // { type: 'room'|'dm', id, friend? }
+let roomChannel = null;
+let oldestId = null;
+
+async function openRoom(id) {
+  const r = [...ROOMS, ...extraRooms].find((x) => x.id === id) || ROOMS[0];
+  if (r.members && !isMember && !isAdmin) {
+    err('The Throne Room is for Throne Pass members. Get the pass on the Submit page.');
+    return;
+  }
+  err('');
+  current = { type: 'room', id: r.id };
+  history.replaceState(null, '', '#room=' + encodeURIComponent(r.id));
+  $$('.chat-item').forEach((b) => b.setAttribute('aria-current', String(b.dataset.room === r.id)));
+  $('#conv-title').textContent = (r.id.startsWith('crew:') || r.id.startsWith('city:') ? '' : '# ') + r.name;
+  $('#conv-desc').textContent = r.desc || '';
+  list.innerHTML = '<p class="dim" style="padding:18px">Loading…</p>';
+  const { data, error } = await sb.rpc('room_messages', { p_room: r.id, p_limit: 50 });
+  if (error) { list.innerHTML = '<p class="error" style="padding:18px">Couldn\'t load messages.</p>'; return; }
+  list.innerHTML = '';
+  oldestId = data.length ? data[0].id : null;
+  $('#load-earlier').hidden = data.length < 50;
+  if (!data.length) list.innerHTML = `<p class="dim chat-empty" style="padding:18px">No messages yet. Say hi 👋</p>`;
+  data.forEach((m) => append(m, 'room'));
+  toBottom();
+  setComposer();
+  subscribeRoom(r.id);
+}
+
+async function subscribeRoom(id) {
+  if (roomChannel) sb.removeChannel(roomChannel);
+  $('#online').hidden = true;
+  clearInterval(activeTimer);
+  const paintActive = async () => {
+    if (document.hidden || current?.type !== 'room' || current.id !== id) return;
+    const { data } = await sb.rpc('room_active', { p_room: id });
+    const n = Number(data) || 0;
+    $('#online-n').textContent = fmt(n); $('#online').hidden = n < 1;
+  };
+  paintActive(); activeTimer = setInterval(paintActive, 60000);
+  await rtReady();
+  if (current?.type !== 'room' || current.id !== id) return;
+  roomChannel = sb.channel('chat:' + id, { config: { private: true } })
+    .on('broadcast', { event: 'message' }, ({ payload }) => {
+      if (!payload || current?.type !== 'room' || current.id !== id) return;
+      if (list.querySelector(`[data-id="${payload.id}"]`)) return;
+      append(payload, 'room');
+    })
+    .on('broadcast', { event: 'deleted' }, ({ payload }) => {
+      list.querySelector(`[data-id="${payload?.id}"]`)?.remove();
+    })
+    .subscribe((status) => { if (status === 'SUBSCRIBED' && gapSince) { catchUp(id); } gapSince = status !== 'SUBSCRIBED'; });
+}
+let activeTimer = null; let gapSince = false;
+// After a dropped connection, fetch anything missed instead of leaving holes.
+async function catchUp(id) {
+  const last = [...list.querySelectorAll('[data-id]')].pop()?.dataset.id;
+  const { data } = await sb.rpc('room_messages', { p_room: id, p_before: null, p_limit: 50 });
+  (data || []).filter((m) => !last || m.id > Number(last)).forEach((m) => { if (current?.id === id) append(m, 'room'); });
+}
+
+$('#load-earlier').addEventListener('click', async () => {
+  if (!current || current.type !== 'room' || !oldestId) return;
+  const before = box.scrollHeight;
+  const { data } = await sb.rpc('room_messages', { p_room: current.id, p_before: oldestId, p_limit: 50 });
+  if (!data || !data.length) { $('#load-earlier').hidden = true; return; }
+  oldestId = data[0].id;
+  list.insertAdjacentHTML('afterbegin', data.filter((m) => !blocked.has(m.user_id)).map((m) => msgHtml(m, 'room')).join(''));
+  box.scrollTop = box.scrollHeight - before;
+  $('#load-earlier').hidden = data.length < 50;
+});
+
+// ---------- DMs ----------
+let threads = [];
+async function loadThreads() {
+  if (!me) return;
+  const { data } = await sb.rpc('dm_threads');
+  threads = data || [];
+  const el = $('#dm-list');
+  if (!threads.length) { el.innerHTML = '<p class="dim" style="font-size:13px;padding:4px 10px">Add friends to start a DM. <a href="/community.html#friends">Find friends</a></p>'; return; }
+  el.innerHTML = threads.map((t) => `<button type="button" class="chat-item" data-dm="${esc(t.gamertag)}" aria-current="${current?.type === 'dm' && current.friend.gamertag === t.gamertag}">
+      <span class="avatar" style="width:24px;height:24px;font-size:12px;border-radius:7px">${esc(t.gamertag.charAt(0).toUpperCase())}</span>
+      <span class="chat-item-name${t.member ? ' name-member' : ''}">${esc(t.gamertag)}</span>
+      ${Number(t.unread) ? `<span class="unread">${fmt(t.unread)}</span>` : ''}</button>`).join('');
+  $$('[data-dm]', el).forEach((b) => b.addEventListener('click', () => openDm(b.dataset.dm)));
+}
+
+async function openDm(tag) {
+  const t = threads.find((x) => x.gamertag.toLowerCase() === String(tag).toLowerCase());
+  if (!t) { err('You can message friends only. Add them first from their profile.'); return; }
+  err('');
+  if (roomChannel) { sb.removeChannel(roomChannel); roomChannel = null; }
+  $('#online').hidden = true; $('#load-earlier').hidden = true;
+  current = { type: 'dm', id: t.friend_id, friend: t };
+  history.replaceState(null, '', '#dm=' + encodeURIComponent(t.gamertag));
+  $$('.chat-item').forEach((b) => b.setAttribute('aria-current', String(b.dataset.dm === t.gamertag)));
+  $('#conv-title').textContent = '@ ' + t.gamertag;
+  $('#conv-desc').innerHTML = `<a href="${playerHref(t.gamertag)}">View profile</a> · Only you two can see this`;
+  const { data } = await sb.from('dm_messages').select('id, sender, recipient, body, created_at')
+    .or(`and(sender.eq.${me},recipient.eq.${t.friend_id}),and(sender.eq.${t.friend_id},recipient.eq.${me})`)
+    .order('id', { ascending: false }).limit(80);
+  list.innerHTML = '';
+  const rows = (data || []).reverse();
+  if (!rows.length) list.innerHTML = `<p class="dim chat-empty" style="padding:18px">Start the conversation with ${esc(t.gamertag)}.</p>`;
+  rows.forEach((d) => append(dmRow(d), 'dm'));
+  toBottom();
+  setComposer();
+  await sb.from('dm_messages').update({ read_at: new Date().toISOString() }).eq('sender', t.friend_id).eq('recipient', me).is('read_at', null);
+  loadThreads(); refreshNavUnread();
+}
+const dmRow = (d) => {
+  const fromMe = d.sender === me;
+  return { id: d.id, user_id: d.sender, gamertag: fromMe ? profile.gamertag : current.friend.gamertag,
+           member: fromMe ? isMember : current.friend.member, honor: null, body: d.body, created_at: d.created_at };
+};
+
+if (me) {
+  await rtReady();
+  sb.channel('dm:' + me, { config: { private: true } })
+    .on('broadcast', { event: 'dm' }, async ({ payload: d }) => {
+      if (!d) return;
+      if (blocked.has(d.sender)) return;
+      if (current?.type === 'dm' && current.id === d.sender) {
+        append(dmRow(d), 'dm');
+        await sb.from('dm_messages').update({ read_at: new Date().toISOString() }).eq('id', d.id);
+      }
+      loadThreads(); refreshNavUnread();
+    })
+    .subscribe();
+}
+function refreshNavUnread() { window.dispatchEvent(new Event('ty-unread')); }
+
+// ---------- Composer ----------
+function setComposer() {
+  const form = $('#composer'), locked = $('#composer-locked');
+  let reason = '';
+  if (!me) reason = 'Sign in to chat. <a href="/submit.html">Sign in</a>';
+  else if (!profile) reason = 'Set up your player card to chat. <a href="/submit.html">Set it up</a>';
+  else if (current?.type === 'room' && current.id.startsWith('city:') && current.id !== cityRoom(profile)) reason = 'Only players from this city can post here.';
+  form.hidden = !!reason; locked.hidden = !reason; $('#locked-text').innerHTML = reason;
+  $('#msg-input').placeholder = current?.type === 'dm' ? `Message ${current.friend.gamertag}…` : 'Say something…';
+}
+const input = $('#msg-input');
+input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); $('#composer').requestSubmit(); } });
+input.addEventListener('input', () => { input.style.height = 'auto'; input.style.height = Math.min(input.scrollHeight, 140) + 'px'; });
+$('#composer').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const body = input.value.trim();
+  if (!body || !current) return;
+  $('#send-btn').disabled = true; err('');
+  let res;
+  if (current.type === 'room') {
+    res = await sb.from('chat_messages').insert({ room: current.id, user_id: me, body }).select('id').single();
+    if (!res.error) { const { data } = await sb.rpc('chat_message', { p_id: res.data.id }); if (data && data[0]) append(data[0], 'room'); }
+  } else {
+    res = await sb.from('dm_messages').insert({ sender: me, recipient: current.id, body }).select('id, sender, recipient, body, created_at').single();
+    if (!res.error) { append(dmRow(res.data), 'dm'); loadThreads(); }
+  }
+  $('#send-btn').disabled = false;
+  if (res.error) {
+    const m = res.error.message || '';
+    err(/row-level security/i.test(m) ? (current.type === 'dm' ? 'You can only message friends who haven\'t blocked you.' : 'You can\'t post in this room.') : m.replace(/^.*?: /, ''));
+    return;
+  }
+  input.value = ''; input.style.height = 'auto'; input.focus();
+});
+
+// ---------- Message actions ----------
+list.addEventListener('click', async (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.del) {
+    if (b.dataset.armed !== '1') { b.dataset.armed = '1'; b.textContent = 'Confirm'; return; }
+    const { error } = await sb.from('chat_messages').delete().eq('id', Number(b.dataset.del));
+    if (error) return err(error.message);
+    b.closest('.msg')?.remove();
+  } else if (b.dataset.report) {
+    if (b.dataset.armed !== '1') { b.dataset.armed = '1'; b.textContent = 'Confirm report'; return; }
+    const row = b.dataset.kind === 'dm' ? { dm_id: Number(b.dataset.report) } : { message_id: Number(b.dataset.report) };
+    const { error } = await sb.from('chat_reports').insert({ reporter: me, reason: 'Reported from chat', ...row });
+    b.textContent = error ? 'Failed' : 'Reported'; b.disabled = true;
+  } else if (b.dataset.block) {
+    if (b.dataset.armed !== '1') { b.dataset.armed = '1'; b.textContent = `Block ${b.dataset.tag}?`; return; }
+    const { error } = await sb.from('blocks').insert({ blocker: me, blocked: b.dataset.block });
+    if (error && error.code !== '23505') return err(error.message);
+    blocked.add(b.dataset.block);
+    $$(`.msg[data-user="${b.dataset.block}"]`, list).forEach((x) => x.remove());
+    err('');
+  }
+});
+
+$$('[data-room]').forEach((b) => b.addEventListener('click', () => openRoom(b.dataset.room)));
+
+// ---------- Start ----------
+await loadThreads();
+const h = new URLSearchParams(location.hash.slice(1));
+if (h.get('dm') && me) openDm(h.get('dm'));
+else openRoom(h.get('room') || 'lounge');
+</script>
+</body>
+</html>

@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Highlights — Throneyard</title>
+<meta name="description" content="Watch the best verified GTA 6 runs on Throneyard.">
+<meta name="theme-color" content="#0A0B0A">
+<link rel="icon" href="/assets/brand/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/assets/brand/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/assets/brand/apple-touch-icon.png">
+<meta property="og:image" content="https://throneyard.com/assets/brand/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/styles.css">
+</head>
+<body>
+<header id="site-header"></header>
+<main class="wrap" style="padding-bottom:88px">
+  <div class="page-head">
+    <span class="eyebrow">Highlights</span>
+    <h1 class="h2">The best runs on Throneyard.</h1>
+    <p class="muted">Hand-picked verified runs. Watch, react, then go beat them.</p>
+  </div>
+  <p class="error" id="h-err" role="alert" hidden></p>
+  <div id="clips" class="clip-grid"><p class="dim">Loading…</p></div>
+</main>
+<footer id="site-footer"></footer>
+
+<script type="module">
+import { sb, $, $$, esc, fmt, renderChrome, currentProfile, playerHref, memberChip } from '/assets/app.js';
+renderChrome('highlights');
+
+const { session } = await currentProfile();
+const me = session?.user?.id || null;
+const REACTS = [['gg', 'GG'], ['fire', '🔥'], ['crown', '👑']];
+
+const { data, error } = await sb.rpc('highlights', { p_limit: 30 });
+const box = $('#clips');
+if (error) {
+  box.innerHTML = '<p class="error">Couldn\'t load highlights. Try again.</p>';
+} else if (!data.length) {
+  box.innerHTML = '<div class="card empty" style="grid-column:1/-1">The first highlights drop after Weekend 1 runs are reviewed. Yours could be one. <a href="/submit.html">Submit a run</a></div>';
+} else {
+  box.innerHTML = data.map((c) => `
+    <article class="clip" data-id="${c.id}">
+      <video controls preload="metadata" playsinline data-path="${esc(c.video_path)}"></video>
+      <div class="clip-body">
+        <div class="row between" style="gap:8px">
+          <span><a class="player-link${c.member ? ' name-member' : ''}" href="${playerHref(c.gamertag)}"><strong>${esc(c.gamertag)}</strong></a> ${memberChip(c.member)}</span>
+          <span class="score" style="color:var(--accent)">${fmt(c.score)} pts</span>
+        </div>
+        <span class="dim">${esc(c.mission)} · ${esc(c.week_label)} · ${esc(c.city)}, ${esc(c.country)}</span>
+        <div class="row" style="gap:8px">
+          ${REACTS.map(([k, label]) => `<button type="button" class="react" data-react="${k}" aria-pressed="${(c.mine || []).includes(k)}" aria-label="${k === 'gg' ? 'GG' : k === 'fire' ? 'Fire' : 'Crown'}"><span>${label}</span><span data-count>${fmt(c[k])}</span></button>`).join('')}
+        </div>
+      </div>
+    </article>`).join('');
+
+  // Load each video through a short-lived link.
+  for (const v of $$('video[data-path]', box)) {
+    const { data: s } = await sb.storage.from('submissions').createSignedUrl(v.dataset.path, 3600);
+    if (s?.signedUrl) v.src = s.signedUrl;
+  }
+
+  box.addEventListener('click', async (e) => {
+    const b = e.target.closest('[data-react]'); if (!b) return;
+    if (!me) { const err = $('#h-err'); err.innerHTML = 'Sign in to react. <a href="/submit.html">Sign in</a>'; err.hidden = false; return; }
+    const id = Number(b.closest('.clip').dataset.id);
+    const on = b.getAttribute('aria-pressed') === 'true';
+    const countEl = b.querySelector('[data-count]');
+    const n = Number(countEl.textContent.replace(/,/g, ''));
+    b.setAttribute('aria-pressed', String(!on)); countEl.textContent = fmt(n + (on ? -1 : 1));
+    const { error } = on
+      ? await sb.from('clip_reactions').delete().eq('submission_id', id).eq('user_id', me).eq('kind', b.dataset.react)
+      : await sb.from('clip_reactions').insert({ submission_id: id, user_id: me, kind: b.dataset.react });
+    if (error) { b.setAttribute('aria-pressed', String(on)); countEl.textContent = fmt(n); }
+  });
+}
+</script>
+</body>
+</html>

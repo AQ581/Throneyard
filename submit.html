@@ -1,0 +1,725 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Submit a mission — Throneyard</title>
+<meta name="theme-color" content="#0A0B0A">
+<link rel="icon" href="/assets/brand/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/assets/brand/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/assets/brand/apple-touch-icon.png">
+<meta property="og:image" content="https://throneyard.com/assets/brand/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/styles.css">
+</head>
+<body>
+<header id="site-header"></header>
+<main class="wrap" style="padding-bottom:88px">
+
+  <!-- Signed out -->
+  <section id="v-signin" class="narrow" hidden>
+    <div class="page-head" style="text-align:center;align-items:center">
+      <span class="eyebrow">Player sign in</span>
+      <h1 class="h2">Sign in to submit missions</h1>
+      <p class="muted">Create your player account in seconds.</p>
+    </div>
+    <div class="card stack" style="gap:16px">
+      <button class="btn btn-discord btn-lg btn-block" type="button" id="discord-login">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19.6 5.3A17 17 0 0 0 15.4 4l-.5 1a15.7 15.7 0 0 0-5.8 0l-.5-1a17 17 0 0 0-4.2 1.3C1.7 9.3 1 13.2 1.3 17a17 17 0 0 0 5.2 2.6l1.1-1.8a11 11 0 0 1-1.7-.8l.4-.3a12.2 12.2 0 0 0 11.4 0l.4.3-1.7.8 1.1 1.8a17 17 0 0 0 5.2-2.6c.4-4.5-.7-8.4-3.1-11.7zM8.7 14.7c-1 0-1.9-1-1.9-2.1s.8-2.1 1.9-2.1 1.9 1 1.9 2.1-.8 2.1-1.9 2.1zm6.6 0c-1 0-1.9-1-1.9-2.1s.8-2.1 1.9-2.1 1.9 1 1.9 2.1-.8 2.1-1.9 2.1z"/></svg>
+        Continue with Discord
+      </button>
+      <div class="row" id="discord-or" style="gap:12px;color:var(--dim);font-size:13px"><span style="flex:1;height:1px;background:var(--border)"></span>or<span style="flex:1;height:1px;background:var(--border)"></span></div>
+      <form id="pw-login" class="stack" style="gap:12px" novalidate>
+        <div class="pills" role="group" aria-label="Sign in or create account">
+          <button type="button" class="pill" data-pwmode="up" aria-pressed="true">Create account</button>
+          <button type="button" class="pill" data-pwmode="in" aria-pressed="false">Sign in</button>
+        </div>
+        <div class="field">
+          <label for="pw-email">Email</label>
+          <input class="input" id="pw-email" type="email" autocomplete="email" placeholder="you@email.com" required>
+        </div>
+        <div class="field">
+          <label for="pw-pass">Password</label>
+          <input class="input" id="pw-pass" type="password" autocomplete="new-password" placeholder="At least 8 characters" minlength="8" required>
+        </div>
+        <button class="btn btn-primary btn-lg btn-block" type="submit" id="pw-btn">Create account</button>
+        <button class="btn btn-ghost" type="button" id="forgot-btn" hidden>Forgot or never set a password?</button>
+        <p id="pw-err" role="alert" class="error" hidden></p>
+        <p id="pw-ok" role="status" class="ok" hidden></p>
+        <button class="btn btn-ghost" type="button" id="show-link-login">Email me a sign-in link instead</button>
+      </form>
+      <form id="newpw-form" class="stack" style="gap:12px" hidden>
+        <p class="ok" style="margin:0"><strong>Set your new password.</strong></p>
+        <div class="field">
+          <label for="newpw">New password</label>
+          <input class="input" id="newpw" type="password" autocomplete="new-password" minlength="8" placeholder="At least 8 characters">
+        </div>
+        <button class="btn btn-primary btn-lg btn-block" type="submit" id="newpw-btn">Save password</button>
+        <p id="newpw-err" role="alert" class="error" hidden></p>
+      </form>
+      <form id="email-login" class="stack" style="gap:12px" hidden>
+        <div class="field">
+          <label for="login-email">Email</label>
+          <input class="input" id="login-email" type="email" autocomplete="email" placeholder="you@email.com" required>
+        </div>
+        <button class="btn btn-primary btn-lg btn-block" type="submit" id="email-send">Email me a sign-in link</button>
+        <p id="login-msg" role="status" class="dim"></p>
+        <button class="btn btn-ghost" type="button" id="show-pw-login">Use email and password instead</button>
+      </form>
+      <form id="code-login" class="stack" style="gap:12px" hidden>
+        <p class="ok" style="margin:0"><strong>Check your inbox.</strong> Open the sign-in email (from Supabase Auth) and tap <strong>Sign in</strong>. It brings you right back here, signed in.</p>
+        <p class="dim" style="margin:0;font-size:13px">Sent to <strong id="code-email"></strong>. Not there? Check spam, or wait a minute and resend.</p>
+        <div class="field">
+          <label for="login-code">Got a code in your email instead? Enter it here</label>
+          <input class="input" id="login-code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6,10}" maxlength="10" placeholder="123456" style="font-size:22px;letter-spacing:6px;text-align:center">
+        </div>
+        <button class="btn btn-primary btn-lg btn-block" type="submit" id="code-btn">Sign in</button>
+        <p id="code-err" role="alert" class="error" hidden></p>
+        <button class="btn btn-ghost" type="button" id="code-back">Use a different email or resend</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- Profile -->
+  <section id="v-profile" class="narrow" hidden>
+    <div class="page-head">
+      <span class="eyebrow">Set up your player card</span>
+      <h1 class="h2">Where do you run?</h1>
+      <p class="muted">This puts you on the right global, country and city boards.</p>
+    </div>
+    <form id="profile-form" class="card stack" style="gap:14px">
+      <div class="field"><label for="p-tag">Gamertag</label><input class="input" id="p-tag" maxlength="32" required></div>
+      <div class="field">
+        <span class="label" id="pp-label">Platform</span>
+        <div class="pills" role="group" aria-labelledby="pp-label">
+          <button type="button" class="pill" data-pp="ps5" aria-pressed="true">PlayStation 5</button>
+          <button type="button" class="pill" data-pp="xbox" aria-pressed="false">Xbox Series X|S</button>
+        </div>
+      </div>
+      <div class="row" style="align-items:flex-start">
+        <div class="field" style="flex:1 1 200px"><label for="p-res">Country</label><select class="input" id="p-res" required></select></div>
+        <div class="field" style="flex:1 1 200px"><label for="p-city">City</label><input class="input" id="p-city" maxlength="80" placeholder="Toronto" required></div>
+      </div>
+
+      <div class="field"><label for="p-discord">Discord handle (optional)</label><input class="input" id="p-discord" maxlength="40" placeholder="yourname">
+        <span class="dim" style="font-size:13px">Shown on your public profile and Find Players posts so people can reach you.</span></div>
+      <div class="field"><label for="p-bio">Bio (optional)</label><input class="input" id="p-bio" maxlength="160" placeholder="Night runner. Heist specialist. Looking for a crew."></div>
+      <div class="field"><label for="p-rival">Your rival (optional)</label><input class="input" id="p-rival" maxlength="32" placeholder="Their gamertag" autocomplete="off">
+        <span class="dim" style="font-size:13px">Your profile shows a head-to-head score against them, and they get notified.</span></div>
+      <p class="error" id="profile-err" role="alert" hidden></p>
+      <button class="btn btn-primary btn-lg" type="submit">Save player card</button>
+    </form>
+  </section>
+
+  <!-- Submit -->
+  <section id="v-submit" hidden>
+    <div class="page-head">
+      <span class="eyebrow">Weekend missions</span>
+      <h1 class="h2">Submit a mission</h1>
+      <p class="muted" id="who"></p>
+      <div id="final-banner" class="card row between" hidden style="border-color:var(--accent);padding:18px 22px">
+        <span><strong style="color:var(--accent)">You're in the World Final.</strong> <span class="muted">Pick the World Final mission below. Highest verified score is crowned World Champion.</span></span>
+      </div>
+    </div>
+    <div class="split">
+      <form id="sub-form" class="card stack" style="gap:16px">
+        <div class="field">
+          <label for="mission">Mission</label>
+          <select class="input" id="mission" required></select>
+          <span class="dim" id="mission-desc"></span>
+        </div>
+
+        <div class="field">
+          <span class="label">Recording (required)</span>
+          <label class="drop" for="video">
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#C8FF3D" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M10 9.5v5l4-2.5z"/></svg>
+            <strong>Choose your full run recording</strong>
+            <span class="dim" style="font-size:13px">MP4, MOV or WebM</span>
+          </label>
+          <input id="video" type="file" accept="video/mp4,video/quicktime,video/webm" class="sr-only" required>
+          <div id="video-row"></div>
+        </div>
+
+        <div class="field">
+          <span class="label">Screenshots (up to <span id="shot-max">6</span>)</span>
+          <label class="drop" for="images" style="padding:18px">
+            <strong>Add mission complete & stats screenshots</strong>
+            <span class="dim" style="font-size:13px">PNG, JPG or WebP</span>
+          </label>
+          <input id="images" type="file" accept="image/png,image/jpeg,image/webp" multiple class="sr-only">
+          <div id="image-rows" class="stack" style="gap:8px"></div>
+        </div>
+
+        <div class="field">
+          <label for="notes">Notes (optional)</label>
+          <textarea class="input" id="notes" maxlength="1000" placeholder="Anything reviewers should know about this run"></textarea>
+        </div>
+
+        <label class="row" style="gap:10px;align-items:flex-start;font-size:14px;color:var(--text-2)">
+          <input type="checkbox" id="confirm" required style="width:20px;height:20px;margin-top:2px;accent-color:#C8FF3D">
+          <span>I played this run myself. The footage is real, unedited and not AI-generated.</span>
+        </label>
+
+        <div id="perk-note" class="file-row" style="justify-content:flex-start"></div>
+        <p class="error" id="sub-err" role="alert" hidden></p>
+        <p class="ok" id="sub-ok" role="status" hidden></p>
+        <button class="btn btn-primary btn-lg" type="submit" id="sub-btn">Submit for ranking</button>
+      </form>
+
+      <div class="stack" style="gap:16px">
+        <div class="card stack" id="checklist" style="gap:10px" hidden>
+          <div class="row between"><strong style="font-family:var(--display);font-size:19px">Get started</strong><span class="dim" id="check-progress"></span></div>
+          <div id="check-items" class="stack" style="gap:8px"></div>
+        </div>
+        <div class="card stack" id="membership" style="gap:14px">
+          <div class="row between"><strong style="font-family:var(--display);font-size:19px">Throne Pass</strong><span id="mem-badge" class="badge gray">Free player</span></div>
+          <p style="margin:0;font-size:15px"><strong>Required to be ranked.</strong> <span class="muted">Your verified runs are saved, and your points go on the boards the moment you join.</span></p>
+          <ul id="mem-perks" class="muted" style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;font-size:14px">
+            <li>Ranked on global, country and city boards, plus champion badges</li>
+            <li><span class="early-hours">24</span>-hour early access to every weekend mission</li>
+            <li>Members-only bonus missions that count toward your rank</li>
+            <li>Priority review: your runs are checked first</li>
+            <li>Gold name and Member badge on every leaderboard</li>
+            <li>Start your own crew, plus 3 pinned Find Players posts</li>
+            <li><span class="member-shots">12</span> screenshots per run, plus a members-only Discord role</li>
+          </ul>
+          <p class="muted" id="mem-copy" style="font-size:14px" hidden></p>
+          <p class="ok" id="mem-msg" role="status" hidden></p>
+          <p class="error" id="mem-err" role="alert" hidden></p>
+          <button class="btn btn-primary btn-lg" type="button" id="buy-mem">Become a member · <span class="pass-price">$5.99</span>/mo</button>
+          <button class="btn btn-ghost" type="button" id="manage-mem" hidden>Manage or cancel membership</button>
+          <span class="dim" style="font-size:12px">Perks only, with no cash prizes. Cancel anytime.</span>
+        </div>
+        <div class="card stack" style="gap:12px">
+          <strong style="font-family:var(--display);font-size:19px">How review works</strong>
+          <p class="muted" style="font-size:15px">Every submission is checked for AI-generated, edited or reused footage before it counts. Verified runs are scored and added to the boards. Rejected runs come back with a reason so you can resubmit.</p>
+        </div>
+        <div class="card stack" style="gap:12px">
+          <div class="row between"><strong style="font-family:var(--display);font-size:19px">My submissions</strong><span style="font-size:14px"><a href="#" id="edit-profile">Edit player card</a> · <a href="#" id="view-profile">View profile</a></span></div>
+          <div id="mine" class="stack" style="gap:8px"><p class="dim">Loading…</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+<footer id="site-footer"></footer>
+
+<script type="module">
+import { sb, $, $$, esc, fmt, renderChrome, currentProfile, residenceOptions, countryName, getSettings, applyPrizeText } from '/assets/app.js';
+import { DISCORD_LOGIN } from '/assets/config.js';
+let settings = { earlyHours: 24, memberShots: 12, freeShots: 6, passPrice: '5.99' };
+getSettings().then((s) => { settings = s; applyPrizeText(s); });
+let isMember = false;
+const maxShots = () => (isMember ? settings.memberShots : settings.freeShots);
+renderChrome('submit');
+
+$('#p-res').innerHTML = residenceOptions();
+
+const MAX_VIDEO_MB = 500;
+const show = (id) => ['v-signin', 'v-profile', 'v-submit'].forEach((v) => ($('#' + v).hidden = v !== id));
+const redirectTo = `${location.origin}/submit.html`;
+
+// ---- Sign in ----
+if (!DISCORD_LOGIN) { $('#discord-login').hidden = true; $('#discord-or').hidden = true; }
+$('#discord-login').addEventListener('click', () =>
+  sb.auth.signInWithOAuth({ provider: 'discord', options: { redirectTo } }));
+
+// Email + password: no email has to be sent, so it can't hit the email limit.
+let pwMode = 'up';
+$$('[data-pwmode]').forEach((b) => b.addEventListener('click', () => {
+  pwMode = b.dataset.pwmode;
+  $$('[data-pwmode]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+  $('#pw-btn').textContent = pwMode === 'up' ? 'Create account' : 'Sign in';
+  $('#pw-pass').setAttribute('autocomplete', pwMode === 'up' ? 'new-password' : 'current-password');
+  $('#pw-err').hidden = true; $('#pw-ok').hidden = true;
+  $('#forgot-btn').hidden = pwMode !== 'in';
+}));
+
+// Forgot / never set a password: email a reset link that brings them back here to choose one.
+$('#forgot-btn').addEventListener('click', async () => {
+  const email = $('#pw-email').value.trim();
+  const err = $('#pw-err'); const ok = $('#pw-ok'); err.hidden = true; ok.hidden = true;
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { err.textContent = 'Type your email above first.'; err.hidden = false; return; }
+  $('#forgot-btn').disabled = true;
+  const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: `${location.origin}/submit.html?reset=1` });
+  $('#forgot-btn').disabled = false;
+  if (error) {
+    err.textContent = /rate|security purposes|seconds/i.test(error.message) ? 'Too many emails just now. Wait a bit and try again.' : 'Couldn\'t send the email. Try again.';
+    err.hidden = false; return;
+  }
+  ok.textContent = 'Check your inbox for a "Reset password" email (from Supabase Auth). Tap the link and you\'ll come back here to set your password.';
+  ok.hidden = false;
+});
+
+// Arrived from a reset email: ask for the new password before anything else.
+let recovering = new URLSearchParams(location.search).has('reset') || /type=recovery/.test(location.hash);
+sb.auth.onAuthStateChange((event) => { if (event === 'PASSWORD_RECOVERY') { recovering = true; showNewPassword(); } });
+function showNewPassword() {
+  show('v-signin');
+  $('#pw-login').hidden = true; $('#email-login').hidden = true; $('#code-login').hidden = true;
+  $('#newpw-form').hidden = false; $('#newpw').focus();
+}
+$('#newpw-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const err = $('#newpw-err'); err.hidden = true;
+  const password = $('#newpw').value;
+  if (password.length < 8) { err.textContent = 'Password needs at least 8 characters.'; err.hidden = false; return; }
+  $('#newpw-btn').disabled = true;
+  const { error } = await sb.auth.updateUser({ password });
+  $('#newpw-btn').disabled = false;
+  if (error) { err.textContent = error.message.includes('session') ? 'That reset link expired. Request a new one.' : error.message; err.hidden = false; return; }
+  recovering = false;
+  history.replaceState(null, '', '/submit.html');
+  $('#newpw-form').hidden = true; $('#pw-login').hidden = false;
+  boot();
+});
+$('#show-link-login').addEventListener('click', () => { $('#pw-login').hidden = true; $('#email-login').hidden = false; $('#login-email').value = $('#pw-email').value; });
+$('#show-pw-login').addEventListener('click', () => { $('#email-login').hidden = true; $('#code-login').hidden = true; $('#pw-login').hidden = false; });
+
+$('#pw-login').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const email = $('#pw-email').value.trim();
+  const password = $('#pw-pass').value;
+  const err = $('#pw-err'); const ok = $('#pw-ok');
+  err.hidden = true; ok.hidden = true;
+  const fail = (m) => { err.textContent = m; err.hidden = false; };
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return fail('Enter a valid email.');
+  if (password.length < 8) return fail('Password needs at least 8 characters.');
+  const btn = $('#pw-btn'); const label = btn.textContent;
+  btn.disabled = true; btn.textContent = pwMode === 'up' ? 'Creating…' : 'Signing in…';
+  let res;
+  try {
+    res = pwMode === 'up'
+      ? await sb.auth.signUp({ email, password, options: { emailRedirectTo: redirectTo } })
+      : await sb.auth.signInWithPassword({ email, password });
+  } catch (_) { res = { error: { message: 'network' } }; }
+  btn.disabled = false; btn.textContent = label;
+  const { data, error } = res;
+  if (error) {
+    const m = error.message || '';
+    if (/already registered|already exists/i.test(m)) return fail('That email already has an account. Tap "Sign in" above. Never set a password? Tap "Sign in", then "Forgot or never set a password?".');
+    if (/invalid login credentials/i.test(m)) { $('#forgot-btn').hidden = false; return fail('Wrong email or password. Forgot it, or signed up with an email link? Tap "Forgot or never set a password?" below.'); }
+    if (/email not confirmed/i.test(m)) return fail('Confirm your email first. Check your inbox for the link from Supabase Auth.');
+    if (/rate|security purposes|seconds/i.test(m)) return fail('Too many tries just now. Wait a minute and try again.');
+    if (/password/i.test(m)) return fail(m);
+    return fail('Couldn\'t reach the server. Check your connection and try again.');
+  }
+  if (pwMode === 'up' && !data.session) {
+    ok.textContent = 'Almost there: open the confirmation email we just sent and tap the link, then sign in here.';
+    ok.hidden = false;
+  }
+  // With a session, SIGNED_IN fires and loads the player card / submit view.
+});
+
+$('#email-login').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const msg = $('#login-msg');
+  const email = $('#login-email').value.trim();
+  msg.className = 'dim'; msg.textContent = 'Sending…';
+  $('#email-send').disabled = true;
+  const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: redirectTo } });
+  $('#email-send').disabled = false;
+  if (error) {
+    msg.className = 'error';
+    msg.textContent = /rate|security purposes|seconds/i.test(error.message)
+      ? 'Too many emails just now. Wait a minute, then try again.' : error.message;
+    return;
+  }
+  msg.textContent = '';
+  $('#code-email').textContent = email;
+  $('#email-login').hidden = true;
+  $('#code-login').hidden = false;
+  $('#login-code').value = '';
+  $('#login-code').focus();
+});
+
+// Type the code from the email: no link redirect needed, works across devices.
+$('#code-login').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const email = $('#code-email').textContent;
+  const token = $('#login-code').value.replace(/\D/g, '');
+  if (token.length < 6) { $('#code-err').textContent = 'Tap the Sign in link in the email, or enter the full code.'; $('#code-err').hidden = false; return; }
+  $('#code-err').hidden = true;
+  $('#code-btn').disabled = true; $('#code-btn').textContent = 'Checking…';
+  const { error } = await sb.auth.verifyOtp({ email, token, type: 'email' });
+  $('#code-btn').disabled = false; $('#code-btn').textContent = 'Sign in';
+  if (error) { $('#code-err').textContent = 'That code didn\'t work or has expired. Check it, or resend a new one.'; $('#code-err').hidden = false; }
+  // Success fires SIGNED_IN, which loads the player card / submit view.
+});
+
+$('#code-back').addEventListener('click', () => {
+  $('#code-login').hidden = true;
+  $('#email-login').hidden = false;
+  $('#code-err').hidden = true;
+});
+
+// ---- Profile ----
+let pp = 'ps5';
+$$('[data-pp]').forEach((b) => b.addEventListener('click', () => {
+  pp = b.dataset.pp;
+  $$('[data-pp]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+}));
+
+let session = null;
+let profile = null;
+
+function fillProfile(p) {
+  $('#p-tag').value = p?.gamertag || '';
+  $('#p-city').value = p?.city || '';
+  $('#p-discord').value = p?.discord_handle || '';
+  $('#p-bio').value = p?.bio || '';
+  $('#p-rival').value = '';
+  $('#p-rival').dataset.was = '';
+  if (p?.rival_id) sb.from('profiles').select('gamertag').eq('id', p.rival_id).maybeSingle()
+    .then(({ data }) => { if (data) { $('#p-rival').value = data.gamertag; $('#p-rival').dataset.was = data.gamertag; } });
+  $('#p-res').innerHTML = residenceOptions(p?.residence || '');
+  pp = p?.platform || 'ps5';
+  $$('[data-pp]').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.pp === pp)));
+}
+
+$('#profile-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const err = $('#profile-err'); err.hidden = true;
+  const row = {
+    id: session.user.id,
+    gamertag: $('#p-tag').value.trim(),
+    platform: pp,
+    country: countryName($('#p-res').value),
+    city: $('#p-city').value.trim(),
+    residence: $('#p-res').value || null,
+    discord_handle: $('#p-discord').value.trim() || null,
+    bio: $('#p-bio').value.trim() || null
+  };
+  if (row.gamertag.length < 2 || !row.residence || !row.city) { err.textContent = 'Fill in every field.'; err.hidden = false; return; }
+  const { data, error } = await sb.from('profiles').upsert(row).select().single();
+  if (error) {
+    err.textContent = error.code === '23505' ? 'That gamertag is taken.' : 'Couldn\'t save. Try again.';
+    err.hidden = false; return;
+  }
+  profile = data;
+  const rival = $('#p-rival').value.trim();
+  if (rival.toLowerCase() !== ($('#p-rival').dataset.was || '').toLowerCase()) {
+    const { error: rErr } = await sb.rpc('set_rival', { p_tag: rival || null });
+    if (rErr) { err.textContent = 'Player card saved, but: ' + rErr.message; err.hidden = false; return; }
+    const { data: fresh } = await sb.from('profiles').select('*').eq('id', session.user.id).single();
+    if (fresh) profile = fresh;
+  }
+  enterSubmit();
+});
+
+$('#edit-profile').addEventListener('click', (e) => { e.preventDefault(); fillProfile(profile); show('v-profile'); });
+$('#view-profile').addEventListener('click', (e) => { e.preventDefault(); location.href = '/player.html?u=' + encodeURIComponent(profile.gamertag); });
+
+// ---- File fingerprints (spot the same file submitted twice) ----
+async function sha256Hex(buf) {
+  const d = await crypto.subtle.digest('SHA-256', buf);
+  return [...new Uint8Array(d)].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+async function fingerprint(file) {
+  try {
+    const MB4 = 4 * 1048576;
+    if (file.size <= 2 * MB4) return await sha256Hex(await file.arrayBuffer());
+    const head = await file.slice(0, MB4).arrayBuffer();
+    const tail = await file.slice(file.size - MB4).arrayBuffer();
+    const size = new TextEncoder().encode(String(file.size));
+    const all = new Uint8Array(head.byteLength + tail.byteLength + size.byteLength);
+    all.set(new Uint8Array(head), 0); all.set(new Uint8Array(tail), head.byteLength); all.set(size, head.byteLength + tail.byteLength);
+    return await sha256Hex(all);
+  } catch (_) { return null; }
+}
+// Four still frames from the recording, for the AI evidence check.
+function videoFrames(file, count = 4) {
+  return new Promise((resolve) => {
+    const v = document.createElement('video');
+    const frames = []; let i = 0; let done = false;
+    const finish = () => { if (done) return; done = true; URL.revokeObjectURL(v.src); resolve(frames); };
+    setTimeout(finish, 20000);
+    v.muted = true; v.playsInline = true; v.preload = 'auto';
+    v.onerror = finish;
+    v.onloadedmetadata = () => {
+      if (!isFinite(v.duration) || v.duration <= 0) return finish();
+      v.currentTime = Math.min(v.duration * 0.1, v.duration - 0.1);
+    };
+    v.onseeked = () => {
+      try {
+        const scale = Math.min(1, 1024 / (v.videoWidth || 1024));
+        const c = document.createElement('canvas');
+        c.width = Math.round((v.videoWidth || 1024) * scale); c.height = Math.round((v.videoHeight || 576) * scale);
+        c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+        frames.push(c.toDataURL('image/jpeg', 0.72));
+      } catch (_) {}
+      i += 1;
+      if (i >= count) return finish();
+      v.currentTime = Math.min(v.duration * (0.1 + 0.8 * i / (count - 1)), v.duration - 0.1);
+    };
+    v.src = URL.createObjectURL(file);
+  });
+}
+
+// ---- File checks (recorded for reviewers) ----
+function videoMeta(file) {
+  return new Promise((resolve) => {
+    const v = document.createElement('video');
+    v.preload = 'metadata';
+    v.onloadedmetadata = () => { resolve({ duration_s: Math.round(v.duration), width: v.videoWidth, height: v.videoHeight }); URL.revokeObjectURL(v.src); };
+    v.onerror = () => resolve({ unreadable: true });
+    v.src = URL.createObjectURL(file);
+  });
+}
+function imageMeta(file) {
+  return new Promise((resolve) => {
+    const i = new Image();
+    i.onload = () => { resolve({ width: i.naturalWidth, height: i.naturalHeight }); URL.revokeObjectURL(i.src); };
+    i.onerror = () => resolve({ unreadable: true });
+    i.src = URL.createObjectURL(file);
+  });
+}
+const mb = (b) => (b / 1048576).toFixed(1) + ' MB';
+
+let videoFile = null;
+let imageFiles = [];
+
+$('#video').addEventListener('change', (e) => {
+  videoFile = e.target.files[0] || null;
+  $('#video-row').innerHTML = videoFile
+    ? `<div class="file-row"><span>${esc(videoFile.name)}</span><span class="dim">${mb(videoFile.size)}</span></div>` : '';
+});
+$('#images').addEventListener('change', (e) => {
+  imageFiles = [...e.target.files].slice(0, maxShots());
+  $('#image-rows').innerHTML = imageFiles.map((f) =>
+    `<div class="file-row"><span>${esc(f.name)}</span><span class="dim">${mb(f.size)}</span></div>`).join('')
+    + (e.target.files.length > maxShots() ? `<p class="dim">Only the first ${maxShots()} screenshots will be uploaded.${isMember ? '' : ' Members can add ' + settings.memberShots + '.'}</p>` : '');
+});
+
+// ---- Missions ----
+let missions = [];
+async function loadMissions() {
+  const now = new Date();
+  const earlyEdge = new Date(now.getTime() + (isMember ? settings.earlyHours : 0) * 3600e3).toISOString();
+  const [{ data }, { data: finals }] = await Promise.all([
+    sb.from('missions').select('*').lte('opens_at', earlyEdge).gte('closes_at', now.toISOString()).order('opens_at'),
+    sb.rpc('my_world_finals')
+  ]);
+  const myFinals = (finals || []).map((d) => String(d).slice(0, 10));
+  const all = (data || []).filter((m) => m.kind === 'weekend' || myFinals.includes(String(m.final_month).slice(0, 10)));
+  missions = all.filter((m) => !m.members_only || isMember);
+  const lockedCount = all.length - missions.length;
+  $('#final-banner').hidden = !missions.some((m) => m.kind === 'world_final');
+  const sel = $('#mission');
+  if (!missions.length) {
+    sel.innerHTML = '<option value="">No missions open right now</option>';
+    sel.disabled = true; $('#sub-btn').disabled = true;
+    $('#mission-desc').textContent = lockedCount
+      ? `${lockedCount} members-only mission${lockedCount === 1 ? ' is' : 's are'} open. Become a member to play.`
+      : 'Missions open on ranked weekends. Check back after Thursday\'s launch.';
+    return;
+  }
+  sel.disabled = false; $('#sub-btn').disabled = false;
+  const tag = (m) => m.kind === 'world_final' ? 'WORLD FINAL' : (m.members_only ? 'MEMBERS' : esc(m.week_label));
+  const early = (m) => new Date(m.opens_at) > now ? ' (early access)' : '';
+  sel.innerHTML = missions.map((m) => `<option value="${m.id}">${tag(m)} · ${esc(m.title)}${early(m)}</option>`).join('')
+    + (lockedCount ? `<option disabled>${lockedCount} members-only mission${lockedCount === 1 ? '' : 's'} locked</option>` : '');
+  const desc = () => {
+    const m = missions.find((x) => String(x.id) === sel.value);
+    $('#mission-desc').textContent = m ? `${m.description ? m.description + ' · ' : ''}Up to ${fmt(m.max_points)} pts · closes ${new Date(m.closes_at).toLocaleString()}` : '';
+  };
+  sel.onchange = desc; desc();
+}
+
+async function loadMine() {
+  const { data } = await sb.from('submissions')
+    .select('id, status, score, reject_reason, created_at, ai_status, missions(title, week_label)')
+    .order('created_at', { ascending: false });
+  const box = $('#mine');
+  if (!data || !data.length) { box.innerHTML = '<p class="dim">No submissions yet.</p>'; return; }
+  box.innerHTML = data.map((s) => {
+    const badge = (s.status === 'verified' ? `<span class="badge">Verified · ${fmt(s.score)} pts</span>`
+      : s.status === 'rejected' ? '<span class="badge warn">Rejected</span>'
+      : `<span class="badge gray">In review${s.ai_status === 'pending' ? ' · AI checking' : s.ai_status === 'skipped' || s.ai_status === 'error' ? '' : ' · AI checked'}</span>`);
+    return `<div class="file-row" style="flex-wrap:wrap">
+      <span><strong>${esc(s.missions?.title || 'Mission')}</strong> <span class="dim">· ${esc(s.missions?.week_label || '')}</span></span>${badge}
+      ${s.status === 'rejected' && s.reject_reason ? `<span class="dim" style="flex-basis:100%">${esc(s.reject_reason)}</span>` : ''}
+    </div>`;
+  }).join('');
+}
+
+// ---- Submit ----
+$('#sub-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const err = $('#sub-err'); const ok = $('#sub-ok'); const btn = $('#sub-btn');
+  err.hidden = true; ok.hidden = true;
+  const fail = (m) => { err.textContent = m; err.hidden = false; btn.disabled = false; btn.textContent = 'Submit for ranking'; };
+  if (!videoFile) return fail('Add your run recording.');
+  if (videoFile.size > MAX_VIDEO_MB * 1048576) return fail(`Recording must be under ${MAX_VIDEO_MB} MB.`);
+  if (!$('#confirm').checked) return fail('Confirm the run is yours and unedited.');
+
+  btn.disabled = true; btn.textContent = 'Checking files…';
+  const uid = session.user.id;
+  const folder = `${uid}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const ext = (f) => (f.name.split('.').pop() || 'bin').toLowerCase().replace(/[^a-z0-9]/g, '');
+
+  const checks = {
+    video: { name: videoFile.name, type: videoFile.type, size: videoFile.size, last_modified: new Date(videoFile.lastModified).toISOString(), ...(await videoMeta(videoFile)) },
+    images: [],
+    user_agent: navigator.userAgent,
+    attested_human: true
+  };
+  for (const f of imageFiles) checks.images.push({ name: f.name, type: f.type, size: f.size, last_modified: new Date(f.lastModified).toISOString(), ...(await imageMeta(f)) });
+
+  btn.textContent = 'Uploading recording…';
+  const videoPath = `${folder}/run.${ext(videoFile)}`;
+  const up = await sb.storage.from('submissions').upload(videoPath, videoFile, { contentType: videoFile.type, upsert: false });
+  if (up.error) return fail(/size|large|exceed/i.test(up.error.message) ? 'That recording is too large for the current upload limit. Trim it or contact us.' : 'Upload failed. Check your connection and try again.');
+
+  const imagePaths = [];
+  for (let i = 0; i < imageFiles.length; i++) {
+    btn.textContent = `Uploading screenshot ${i + 1} of ${imageFiles.length}…`;
+    const p = `${folder}/shot-${i + 1}.${ext(imageFiles[i])}`;
+    const r = await sb.storage.from('submissions').upload(p, imageFiles[i], { contentType: imageFiles[i].type, upsert: false });
+    if (r.error) return fail('A screenshot failed to upload. Try again.');
+    imagePaths.push(p);
+  }
+
+  btn.textContent = 'Submitting…';
+  const hashes = (await Promise.all([videoFile, ...imageFiles].map(fingerprint))).filter(Boolean);
+  const framesPromise = videoFrames(videoFile);
+  const { data: inserted, error } = await sb.from('submissions').insert({
+    mission_id: Number($('#mission').value),
+    video_path: videoPath,
+    image_paths: imagePaths,
+    notes: $('#notes').value.trim(),
+    file_checks: checks,
+    file_hashes: hashes
+  }).select('id').single();
+  if (error) {
+    if (error.code === '23505') return fail('You already have a submission for this mission. You can resubmit if it gets rejected.');
+    return fail(error.message.includes('not open') ? 'This mission just closed.' : 'Couldn\'t submit. Try again.');
+  }
+  btn.disabled = false; btn.textContent = 'Submit for ranking';
+  $('#sub-form').reset(); videoFile = null; imageFiles = [];
+  $('#video-row').innerHTML = ''; $('#image-rows').innerHTML = '';
+  ok.textContent = 'Submitted. Your run is in review — you\'ll see the result here.'; ok.hidden = false;
+  loadMine();
+  // AI evidence check runs in the background; a human still makes the final call.
+  if (inserted?.id) framesPromise.then((frames) =>
+    sb.functions.invoke('verify-run', { body: { submission_id: inserted.id, frames } }).finally(() => loadMine()));
+});
+
+// ---- Throne Pass ----
+async function loadMembership() {
+  const { data } = await sb.from('memberships').select('status, current_period_end').eq('user_id', session.user.id).maybeSingle();
+  isMember = !!data && ['active', 'trialing'].includes(data.status) && (!data.current_period_end || new Date(data.current_period_end) > new Date());
+  $('#mem-badge').textContent = isMember ? 'Member' : 'Free player';
+  $('#mem-badge').className = isMember ? 'badge member' : 'badge gray';
+  $('#buy-mem').hidden = isMember;
+  $('#manage-mem').hidden = !data?.status || data.status === 'none';
+  $('#mem-copy').hidden = !isMember;
+  if (isMember) $('#mem-copy').textContent = data.current_period_end ? `Your perks are active. Renews ${new Date(data.current_period_end).toLocaleDateString()}.` : 'Your perks are active.';
+  $('#shot-max').textContent = String(maxShots());
+  $('#perk-note').innerHTML = isMember
+    ? '<span class="ok">Member run: priority review and early access are on.</span>'
+    : '<span class="dim">Members get their runs reviewed first. <a href="#membership">See perks</a></span>';
+  return isMember;
+}
+
+async function goTo(fn, btn) {
+  const label = btn.innerHTML;
+  const err = $('#mem-err'); err.hidden = true;
+  btn.disabled = true; btn.textContent = 'Opening…';
+  const { data, error } = await sb.functions.invoke(fn, { body: {} });
+  if (error || !data?.url) {
+    let msg = 'Something went wrong. Try again.';
+    try { const body = await error?.context?.json(); if (body?.error) msg = body.error; } catch (_) {}
+    err.textContent = msg; err.hidden = false;
+    btn.disabled = false; btn.innerHTML = label;
+    return;
+  }
+  location.href = data.url;
+}
+$('#buy-mem').addEventListener('click', () => goTo('create-checkout', $('#buy-mem')));
+$('#manage-mem').addEventListener('click', () => goTo('billing-portal', $('#manage-mem')));
+
+async function handleReturn() {
+  const q = new URLSearchParams(location.search).get('pass');
+  if (!q) return;
+  history.replaceState(null, '', location.pathname);
+  const msg = $('#mem-msg');
+  if (q === 'cancel') { msg.className = 'dim'; msg.textContent = 'Checkout cancelled. No charge was made.'; msg.hidden = false; return; }
+  msg.className = 'ok'; msg.textContent = 'Payment received. Activating your membership…'; msg.hidden = false;
+  for (let i = 0; i < 10; i++) {
+    if (await loadMembership()) { msg.textContent = 'Welcome to the Throne Pass. Your perks are live.'; loadMissions(); return; }
+    await new Promise((r) => setTimeout(r, 2000));
+  }
+  msg.textContent = 'Payment received. Your membership can take a minute to show. Refresh shortly.';
+}
+
+async function loadChecklist() {
+  const uid = session.user.id;
+  const [fr, crew, runs, msgs, posts] = await Promise.all([
+    sb.from('friendships').select('status', { count: 'exact', head: true }).eq('status', 'accepted').or(`requester.eq.${uid},addressee.eq.${uid}`),
+    sb.from('crew_members').select('crew_id', { count: 'exact', head: true }).eq('user_id', uid),
+    sb.from('submissions').select('id', { count: 'exact', head: true }).eq('user_id', uid),
+    sb.from('chat_messages').select('id', { count: 'exact', head: true }).eq('user_id', uid),
+    sb.from('posts').select('id', { count: 'exact', head: true }).eq('user_id', uid)
+  ]);
+  const items = [
+    ['Set up your player card', true, '#'],
+    ['Add your Discord handle', !!profile.discord_handle, '#edit'],
+    ['Pick your rival', !!profile.rival_id, '#edit'],
+    ['Post your first callout', (posts.count || 0) > 0, '/callouts.html'],
+    ['Add a friend', (fr.count || 0) > 0, '/community.html#friends'],
+    ['Join or start a crew', (crew.count || 0) > 0, '/community.html#crews'],
+    ['Say hi in chat', (msgs.count || 0) > 0, '/chat.html'],
+    ['Submit your first run', (runs.count || 0) > 0, '#sub-form']
+  ];
+  const done = items.filter((i) => i[1]).length;
+  $('#checklist').hidden = done === items.length;
+  $('#check-progress').textContent = `${done}/${items.length}`;
+  $('#check-items').innerHTML = items.map(([label, ok, href]) => `<a class="check-item${ok ? ' done' : ''}" href="${href}" ${href === '#edit' ? 'data-edit' : ''}>
+    <span class="check-box">${ok ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0A0B0A" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>' : ''}</span><span>${label}</span></a>`).join('');
+  $$('#check-items [data-edit]').forEach((a) => a.addEventListener('click', (e) => { e.preventDefault(); fillProfile(profile); show('v-profile'); }));
+}
+
+async function enterSubmit() {
+  $('#who').textContent = `Signed in as ${profile.gamertag} · ${profile.city}, ${profile.country}`;
+  show('v-submit');
+  await loadMembership();
+  loadChecklist();
+  loadMissions();
+  loadMine();
+  sb.rpc('player_streak', { p_gamertag: profile.gamertag }).then(({ data }) => {
+    const c = data && data[0] ? data[0].current_streak : 0;
+    if (c > 0) $('#who').textContent += ` · ${c}-weekend streak. Keep it alive.`;
+  });
+  handleReturn();
+  if (location.hash === '#membership') $('#membership').scrollIntoView({ behavior: 'smooth' });
+}
+
+async function boot() {
+  if (recovering) return showNewPassword();
+  const r = await currentProfile();
+  session = r.session; profile = r.profile;
+  if (!session) return show('v-signin');
+  if (!profile) {
+    const meta = session.user.user_metadata || {};
+    fillProfile({ gamertag: meta.full_name || meta.name || meta.custom_claims?.global_name || '' });
+    return show('v-profile');
+  }
+  if (!profile.residence) { fillProfile(profile); return show('v-profile'); }
+  enterSubmit();
+}
+
+// Re-run setup only when the signed-in player actually changes, so switching tabs never resets an upload in progress.
+let bootedFor = undefined;
+sb.auth.onAuthStateChange((event, sess) => {
+  const uid = sess?.user?.id || null;
+  if (event === 'SIGNED_IN' && uid !== bootedFor) { bootedFor = uid; boot(); }
+});
+bootedFor = (await sb.auth.getSession()).data.session?.user?.id || null;
+boot();
+</script>
+</body>
+</html>

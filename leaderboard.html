@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rankings — Throneyard</title>
+<meta name="description" content="GTA 6 player rankings — global, by country and by city. Verified human-played runs only.">
+<meta name="theme-color" content="#0A0B0A">
+<link rel="icon" href="/assets/brand/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/assets/brand/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/assets/brand/apple-touch-icon.png">
+<meta property="og:image" content="https://throneyard.com/assets/brand/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/styles.css">
+</head>
+<body>
+<header id="site-header"></header>
+<main class="wrap" style="padding-bottom:88px">
+  <div class="page-head">
+    <span class="eyebrow">Rankings</span>
+    <h1 class="h2">Top of the world. Top of your block.</h1>
+    <p class="muted">Only verified, human-played runs count. Rankings show <strong>Throne Pass members</strong>. <a href="/submit.html#membership">Join to get on the board</a>.</p>
+  </div>
+  <div id="champions-list" style="margin-bottom:28px"></div>
+
+  <div class="stack" style="gap:16px">
+    <div class="row between">
+      <div class="tabs" role="group" aria-label="Leaderboard scope">
+        <button class="tab" type="button" data-scope="global" aria-pressed="true">Global</button>
+        <button class="tab" type="button" data-scope="country" aria-pressed="false">Country</button>
+        <button class="tab" type="button" data-scope="city" aria-pressed="false">City</button>
+        <button class="tab" type="button" data-scope="monthly" aria-pressed="false">Continental</button>
+        <button class="tab" type="button" data-scope="final" aria-pressed="false">World Final</button>
+        <button class="tab" type="button" data-scope="wars" aria-pressed="false">City Wars</button>
+      </div>
+      <div class="field" style="min-width:200px" id="week-field">
+        <label for="week" class="sr-only">Weekend</label>
+        <select class="input" id="week"><option value="">All time</option></select>
+      </div>
+      <div class="row" id="month-field" hidden style="gap:8px">
+        <div class="field" style="min-width:180px" id="continent-field">
+          <label for="continent" class="sr-only">Continent</label>
+          <select class="input" id="continent"></select>
+        </div>
+        <div class="field" style="min-width:200px">
+          <label for="month" class="sr-only">Month</label>
+          <select class="input" id="month"></select>
+        </div>
+      </div>
+    </div>
+    <div id="prize-note" class="card" hidden style="padding:18px 22px">
+      <span id="prize-note-text"></span>
+    </div>
+    <form class="row" id="place" hidden>
+      <div class="field" style="flex:1 1 200px">
+        <label for="country">Country</label>
+        <input class="input" id="country" placeholder="e.g. Canada" maxlength="56">
+      </div>
+      <div class="field" style="flex:1 1 200px" id="city-field">
+        <label for="city">City</label>
+        <input class="input" id="city" placeholder="e.g. Toronto" maxlength="80">
+      </div>
+      <button class="btn btn-ghost" type="submit" style="align-self:flex-end;min-height:48px">Show</button>
+    </form>
+
+    <div class="table-box">
+      <table>
+        <caption class="sr-only" id="caption">Leaderboard</caption>
+        <thead id="thead"></thead>
+        <tbody id="board"><tr><td colspan="6" class="empty">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+<footer id="site-footer"></footer>
+
+<script type="module">
+import { sb, $, $$, esc, fmt, pad, renderChrome, leaderboardRows, monthlyRows, currentProfile, latestWeek, getSettings, applyPrizeText, badgesFromRows, renderChampions } from '/assets/app.js';
+renderChrome('rankings');
+
+let scope = 'global';
+const weekSel = $('#week');
+const monthSel = $('#month');
+const settings = await getSettings();
+applyPrizeText(settings);
+renderChampions($('#champions-list'), { compact: true });
+const contSel = $('#continent');
+contSel.innerHTML = Object.entries(settings.continentNames).map(([c, n]) => `<option value="${c}">${esc(n)}</option>`).join('');
+contSel.addEventListener('change', () => load());
+const WHEAD = '<tr><th scope="col">Rank</th><th scope="col">City</th><th scope="col">Players</th><th scope="col">Top player</th><th scope="col">City score</th></tr>';
+const FHEAD = '<tr><th scope="col">Rank</th><th scope="col">Finalist</th><th scope="col">Location</th><th scope="col">Qualified as</th><th scope="col">Final score</th></tr>';
+
+const HEAD = '<tr><th scope="col">Rank</th><th scope="col">Player</th><th scope="col">Location</th><th scope="col">Platform</th><th scope="col">Missions</th><th scope="col">Score</th></tr>';
+const MHEAD = '<tr><th scope="col">Rank</th><th scope="col">Player</th><th scope="col">Location</th><th scope="col">Missions</th><th scope="col">Score</th></tr>';
+
+// Last 6 months (Toronto time)
+const now = new Date();
+for (let i = 0; i < 6; i++) {
+  const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+  const o = document.createElement('option');
+  o.value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
+  o.textContent = d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) + (i === 0 ? ' (current)' : '');
+  monthSel.appendChild(o);
+}
+monthSel.addEventListener('change', () => load());
+
+async function loadMonthly() {
+  const tbody = $('#board');
+  $('#thead').innerHTML = MHEAD;
+  tbody.innerHTML = '<tr><td colspan="5" class="empty">Loading…</td></tr>';
+  const { data, error } = await sb.rpc('monthly_board_v3', { p_month: monthSel.value, p_continent: contSel.value || null, p_limit: 100 });
+  if (error) { tbody.innerHTML = '<tr><td colspan="5" class="empty">Couldn\'t load the continental board. Try again.</td></tr>'; return; }
+  tbody.innerHTML = data.length ? monthlyRows(data, badgesFromRows(data))
+    : '<tr><td colspan="5" class="empty">No verified runs on this continent this month yet. Be the first on the board.</td></tr>';
+}
+
+async function loadWars() {
+  const tbody = $('#board');
+  $('#thead').innerHTML = WHEAD;
+  tbody.innerHTML = '<tr><td colspan="5" class="empty">Loading…</td></tr>';
+  const [{ data, error }, { data: pw }] = await Promise.all([
+    sb.rpc('city_wars', { p_month: monthSel.value, p_limit: 100 }),
+    sb.rpc('platform_wars', { p_month: monthSel.value })
+  ]);
+  const ps = (pw || []).find((x) => x.platform === 'ps5') || { players: 0, score: 0 };
+  const xb = (pw || []).find((x) => x.platform === 'xbox') || { players: 0, score: 0 };
+  const total = Number(ps.score) + Number(xb.score);
+  const pct = total ? Math.round((Number(ps.score) / total) * 100) : 50;
+  $('#prize-note-text').innerHTML = `<strong>Platform Wars</strong> <span class="muted">· this month</span>
+    <div class="row between" style="margin-top:10px;font-weight:600"><span>PS5 · ${fmt(ps.score)} pts · ${fmt(ps.players)} players</span><span>Xbox · ${fmt(xb.score)} pts · ${fmt(xb.players)} players</span></div>
+    <div style="height:10px;border-radius:999px;background:#2A302A;overflow:hidden;margin-top:8px" role="img" aria-label="PS5 ${pct}%, Xbox ${100 - pct}%"><div style="height:100%;width:${pct}%;background:var(--accent)"></div></div>`;
+  if (error) { tbody.innerHTML = '<tr><td colspan="5" class="empty">Couldn\'t load City Wars. Try again.</td></tr>'; return; }
+  tbody.innerHTML = data.length ? data.map((r) => {
+    const n = Number(r.rank);
+    return `<tr>
+      <td><span class="rank ${n === 1 ? 'r1' : n <= 3 ? 'r' + n : ''}">${pad(n)}</span></td>
+      <td><strong>${esc(r.city)}</strong> <span class="dim">${esc(r.country)}</span></td>
+      <td class="muted">${fmt(r.players)}</td>
+      <td>${r.top_player ? `<a class="player-link" href="/player.html?u=${encodeURIComponent(r.top_player)}">${esc(r.top_player)}</a>` : '—'}</td>
+      <td><span class="score">${fmt(r.score)}</span></td></tr>`;
+  }).join('') : '<tr><td colspan="5" class="empty">No verified runs this month yet. Put your city on the map.</td></tr>';
+}
+
+async function loadFinal() {
+  const tbody = $('#board');
+  $('#thead').innerHTML = FHEAD;
+  tbody.innerHTML = '<tr><td colspan="5" class="empty">Loading…</td></tr>';
+  const { data, error } = await sb.rpc('world_final_board', { p_month: monthSel.value });
+  if (error) { tbody.innerHTML = '<tr><td colspan="5" class="empty">Couldn\'t load the World Final. Try again.</td></tr>'; return; }
+  if (!data.length) { tbody.innerHTML = '<tr><td colspan="5" class="empty">Finalists for this month haven\'t been locked yet. They\'re announced after the month ends.</td></tr>'; return; }
+  tbody.innerHTML = data.map((r, i) => {
+    const n = r.final_rank ? Number(r.final_rank) : null;
+    return `<tr>
+      <td><span class="rank ${n === 1 ? 'r1' : n && n <= 3 ? 'r' + n : ''}">${n ? pad(n) : '—'}</span></td>
+      <td><div class="player"><div class="avatar">${esc((r.gamertag || '?').charAt(0).toUpperCase())}</div><strong>${esc(r.gamertag)}</strong>${n === 1 ? '<span class="badge honor-world">Leading</span>' : ''}</div></td>
+      <td class="muted">${esc(r.city)}, ${esc(r.country)}</td>
+      <td class="muted">${esc(r.reason)}</td>
+      <td><span class="score">${n ? fmt(r.final_score) : 'Pending'}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+async function load() {
+  if (scope === 'monthly') return loadMonthly();
+  if (scope === 'final') return loadFinal();
+  if (scope === 'wars') return loadWars();
+  $('#thead').innerHTML = HEAD;
+  const country = $('#country').value.trim();
+  const city = $('#city').value.trim();
+  const tbody = $('#board');
+  if (scope !== 'global' && !country) { tbody.innerHTML = '<tr><td colspan="6" class="empty">Enter a country to see its board.</td></tr>'; return; }
+  if (scope === 'city' && !city) { tbody.innerHTML = '<tr><td colspan="6" class="empty">Enter a city to see its board.</td></tr>'; return; }
+  tbody.innerHTML = '<tr><td colspan="6" class="empty">Loading…</td></tr>';
+  const { data, error } = await sb.rpc('leaderboard_v3', {
+    p_scope: scope, p_country: country || null, p_city: city || null, p_week: weekSel.value || null, p_limit: 100
+  });
+  if (error) { tbody.innerHTML = '<tr><td colspan="6" class="empty">Couldn\'t load rankings. Try again.</td></tr>'; return; }
+  tbody.innerHTML = data.length ? leaderboardRows(data, badgesFromRows(data))
+    : '<tr><td colspan="6" class="empty">No verified runs here yet. Submit a mission and claim the top spot.</td></tr>';
+}
+
+$$('[data-scope]').forEach((b) => b.addEventListener('click', () => {
+  scope = b.dataset.scope;
+  $$('[data-scope]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+  const monthly = scope === 'monthly' || scope === 'final' || scope === 'wars';
+  $('#place').hidden = scope === 'global' || monthly;
+  $('#city-field').hidden = scope !== 'city';
+  $('#week-field').hidden = monthly;
+  $('#month-field').hidden = !monthly;
+  $('#continent-field').hidden = scope !== 'monthly';
+  $('#prize-note').hidden = !monthly;
+  if (scope !== 'wars') $('#prize-note-text').innerHTML = scope === 'final'
+    ? `<strong>Every country's #1 battles in the World Final. The winner is crowned World Champion.</strong> <span class="muted">Finalists are locked after the month ends.</span>`
+    : `<strong>Finish the month #1 on your continent to earn the Continental Champion badge.</strong> <span class="muted">City Champions are crowned the same way, city by city.</span>`;
+  if (scope === 'final' && monthSel.selectedIndex === 0 && monthSel.options.length > 1) monthSel.selectedIndex = 1;
+  load();
+}));
+$('#place').addEventListener('submit', (e) => { e.preventDefault(); load(); });
+weekSel.addEventListener('change', load);
+
+(async () => {
+  const { data: missions } = await sb.from('missions').select('week_label, opens_at').eq('kind', 'weekend').order('opens_at', { ascending: false });
+  const seen = new Set();
+  (missions || []).forEach((m) => {
+    if (seen.has(m.week_label)) return;
+    seen.add(m.week_label);
+    const o = document.createElement('option');
+    o.value = m.week_label; o.textContent = m.week_label;
+    weekSel.appendChild(o);
+  });
+  const latest = await latestWeek();
+  if (latest) weekSel.value = latest;
+
+  const { profile } = await currentProfile();
+  if (profile) { $('#country').value = profile.country; $('#city').value = profile.city; }
+
+  const q = new URLSearchParams(location.search);
+  if (q.get('country')) $('#country').value = q.get('country');
+  if (q.get('city')) $('#city').value = q.get('city');
+  const s = q.get('scope');
+  if (['country', 'city', 'monthly', 'final', 'wars'].includes(s)) $(`[data-scope="${s}"]`).click();
+  else load();
+})();
+</script>
+</body>
+</html>
